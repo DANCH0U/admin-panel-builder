@@ -1,0 +1,44 @@
+<?php
+
+namespace {{ namespace }};
+
+use App\AdminPanel\Engine\BaseResource;
+use App\AdminPanel\Tables\Action;
+use App\AdminPanel\Tables\Search;
+use App\AdminPanel\Tables\TextColumn;
+use App\Models\{{ model }};
+
+class {{ class }} extends BaseResource
+{
+    protected string $key = '{{ route }}';
+
+    protected string $model = {{ model }}::class;
+
+    public function schema(): array
+    {
+        return [
+            'search_placeholder' => 'Search {{ route }}...',
+            'search_columns' => [
+                Search::column('name'),
+            ],
+            'columns' => [
+                TextColumn::make('id')->label('ID')->sortable(),
+                TextColumn::make('name')->label('Name')->sortable(),
+                TextColumn::make('created_at')->label('Created')->sortable(),
+            ],
+            'filters' => [],
+            'actions' => [
+                Action::make('edit')
+                    ->label('Edit')
+                    ->url(fn (array $record) => admin_path('{{ route }}/'.$record['id'].'/edit')),
+                Action::make('delete')
+                    ->label('Delete')
+                    ->delete(fn (array $record) => admin_path('{{ route }}/'.$record['id'])),
+            ],
+            'settings' => [
+                'record_selection' => true,
+                'selection_column' => 'id',
+            ],
+        ];
+    }
+}

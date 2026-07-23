@@ -1,0 +1,49 @@
+<?php
+
+namespace {{ namespace }};
+
+use App\AdminPanel\Engine\BaseResource;
+use App\AdminPanel\Tables\Action;
+use App\AdminPanel\Tables\BulkAction;
+use App\AdminPanel\Tables\Search;
+use App\AdminPanel\Tables\TextColumn;
+use {{ modelFqcn }};
+
+class {{ class }} extends BaseResource
+{
+    protected string $key = '{{ key }}';
+
+    protected string $model = {{ modelClass }}::class;
+
+    public function schema(): array
+    {
+        return [
+            'search_placeholder' => 'Search {{ titleLower }}...',
+            'search_columns' => [
+                Search::column('name')->weight(3),
+            ],
+            'columns' => [
+                TextColumn::make('id')->label('ID')->sortable(),
+                TextColumn::make('name')->label('Name')->sortable()->toggleable(),
+                TextColumn::make('created_at')
+                    ->label('Created')
+                    ->sortable()
+                    ->transform(fn ($v) => $v ? \Carbon\Carbon::parse($v)->format('M d, Y') : null),
+            ],
+            'filters' => [],
+            'actions' => [
+{{ actions }}
+            ],
+            'bulk_actions' => [
+                BulkAction::make('delete')
+                    ->label('Delete selected')
+                    ->delete(fn (array $ids) => {{ modelClass }}::whereIn('id', $ids)->delete()),
+            ],
+            'settings' => [
+                'record_selection' => true,
+                'selection_column' => 'id',
+                'bulk_url' => admin_path('{{ key }}/bulk'),
+            ],
+        ];
+    }
+}

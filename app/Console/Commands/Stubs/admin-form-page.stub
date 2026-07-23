@@ -1,0 +1,55 @@
+<?php
+
+namespace App\AdminPanel\Pages;
+
+use App\AdminPanel\Engine\BasePage;
+use App\AdminPanel\Schema\Button;
+use App\AdminPanel\Schema\Card;
+use App\AdminPanel\Schema\Flex;
+use App\AdminPanel\Schema\Form;
+use App\AdminPanel\Schema\TextInput;
+use {{ modelFqcn }};
+
+class {{ class }} extends BasePage
+{
+    public function __construct(
+        protected string $action,
+        protected string $method = 'POST',
+        protected ?string $pageTitle = null,
+        protected ?{{ modelClass }} ${{ modelVar }} = null,
+    ) {}
+
+    public function title(): ?string
+    {
+        return $this->pageTitle ?? ($this->{{ modelVar }} ? 'Edit {{ titleSingular }}' : 'Create {{ titleSingular }}');
+    }
+
+    public function schema(): array
+    {
+        return [
+            Form::make()
+                ->action($this->action)
+                ->method($this->method)
+                ->schema([
+                    Card::make()
+                        ->border()
+                        ->label('{{ titleSingular }}')
+                        ->schema([
+                            TextInput::make('name')
+                                ->label('Name')
+                                ->required(),
+                        ]),
+                    Flex::make()->justify('end')->schema([
+                        Button::make('Save')->submit(),
+                    ]),
+                ]),
+        ];
+    }
+
+    public function initialData(): array
+    {
+        return [
+            'name' => $this->{{ modelVar }}?->name ?? '',
+        ];
+    }
+}

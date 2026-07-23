@@ -1,0 +1,39 @@
+<?php
+
+namespace {{ namespace }};
+
+use App\AdminPanel\Engine\BasePage;
+use App\AdminPanel\Schema\Button;
+use App\AdminPanel\Schema\Form;
+use App\AdminPanel\Schema\Grid;
+use App\AdminPanel\Schema\Section;
+use App\AdminPanel\Schema\TextInput;
+
+class {{ class }} extends BasePage
+{
+    public function title(): ?string
+    {
+        return '{{ title }}';
+    }
+
+    public function schema(): array
+    {
+        return [
+            Form::make()
+                ->action(admin_path())
+                ->method('POST')
+                ->schema([
+                    Section::make('details')
+                        ->label('Details')
+                        ->description('Edit the fields below, then save.')
+                        ->schema([
+                            Grid::make(2)->schema([
+                                TextInput::make('name')->label('Name')->required(),
+                                TextInput::make('email')->label('Email')->props(['type' => 'email']),
+                            ]),
+                        ]),
+                    Button::make('Save')->submit(),
+                ]),
+        ];
+    }
+}

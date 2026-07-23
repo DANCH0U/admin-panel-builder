@@ -1,0 +1,29 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\AdminPanel\Engine\DataGridEngine;
+use App\AdminPanel\Notifications\Notify;
+use App\AdminPanel\Resources\{{ resourceClass }};
+{{ formImport }}{{ viewImport }}use {{ modelFqcn }};
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+
+class {{ class }} extends Controller
+{
+    public function index(Request $request, DataGridEngine $engine)
+    {
+        $data = $engine->handle(new {{ resourceClass }}(), $request);
+
+        return Inertia::render('Admin/{{ vueFolder }}/Index', [
+            'resource' => $data,
+        ]);
+    }
+
+    public function bulk(Request $request, DataGridEngine $engine)
+    {
+        return $engine->runBulkAction(new {{ resourceClass }}(), $request);
+    }
+{{ formMethods }}{{ viewMethods }}
+}
