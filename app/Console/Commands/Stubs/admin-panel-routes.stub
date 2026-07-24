@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\DashboardController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -11,4 +12,11 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-// Route::get('/', DashboardController::class)->name('{{ panel }}.dashboard');
+Route::get('/', DashboardController::class)->name('{{ panel }}.dashboard');
+
+Route::get('/profile', [\App\Http\Controllers\Admin\ProfileController::class, 'edit'])
+    ->name('{{ panel }}.profile.edit');
+Route::post('/profile', [\App\Http\Controllers\Admin\ProfileController::class, 'update'])
+    ->name('{{ panel }}.profile.update');
+Route::delete('/profile', [\App\Http\Controllers\Admin\ProfileController::class, 'destroy'])
+    ->name('{{ panel }}.profile.destroy');

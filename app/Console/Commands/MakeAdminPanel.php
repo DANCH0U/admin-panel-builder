@@ -113,15 +113,27 @@ class MakeAdminPanel extends Command
         }
 
         if (preg_match('/protected array \$panels = \[([^\]]*)\];/s', $contents, $matches)) {
-            $inner = rtrim($matches[1]);
-            $entry = "        {$class}::class,";
-            if (! str_ends_with(trim($inner), ',')) {
-                $inner = rtrim($inner).",\n";
-            } elseif ($inner !== '' && ! str_ends_with($inner, "\n")) {
-                $inner .= "\n";
+            $lines = preg_split('/\R/', $matches[1]) ?: [];
+            $kept = [];
+
+            foreach ($lines as $line) {
+                $trimmed = trim($line);
+                if ($trimmed === '' || str_starts_with($trimmed, '//')) {
+                    continue;
+                }
+                $kept[] = rtrim($line);
             }
-            $inner .= $entry."\n    ";
-            $contents = str_replace($matches[0], "protected array \$panels = [{$inner}];", $contents);
+
+            $inner = implode("\n", $kept);
+            if ($inner !== '' && ! str_ends_with(rtrim($inner), ',')) {
+                $inner = rtrim($inner).',';
+            }
+
+            $block = $inner === ''
+                ? "\n        {$class}::class,\n    "
+                : "\n{$inner}\n        {$class}::class,\n    ";
+
+            $contents = str_replace($matches[0], "protected array \$panels = [{$block}];", $contents);
             $this->files->put($path, $contents);
             $this->components->info('Registered in AdminPanelProvider::$panels.');
 

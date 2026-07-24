@@ -51,8 +51,14 @@ export function collectDefaults(items: SchemaNode[], bag: Record<string, unknown
             else if (item.type === 'json-input') bag[item.name] = [];
             else if (item.type === 'json-code') bag[item.name] = item.placeholder || '{}';
             else if (item.type === 'number-input') bag[item.name] = item.default ?? 0;
-            else if (item.type === 'file-input') bag[item.name] = '';
-            else bag[item.name] = item.default ?? '';
+            else if (item.type === 'file-input') {
+                bag[item.name] = '';
+                // Inertia only submits keys present at useForm() init — file lives on {name}_file
+                bag[`${item.name}_file`] = null;
+            } else bag[item.name] = item.default ?? '';
+        }
+        if (item.type === 'file-input' && item.name && !(`${item.name}_file` in bag)) {
+            bag[`${item.name}_file`] = null;
         }
         if (item.schema) collectDefaults(item.schema, bag);
     }
@@ -147,3 +153,26 @@ export type SchemaNodeProps = {
     form: any;
     initialData?: Record<string, unknown>;
 };
+
+/** First validation message for a field (supports array messages + aliases like image_file). */
+export function fieldError(
+    form: any,
+    name?: string | null,
+    ...aliases: string[]
+): string | undefined {
+    if (!form?.errors) return undefined;
+
+    const keys = [name, ...aliases].filter((k): k is string => Boolean(k));
+
+    for (const key of keys) {
+        const raw = form.errors[key];
+        if (raw == null || raw === '') continue;
+        return Array.isArray(raw) ? String(raw[0] ?? '') : String(raw);
+    }
+
+    return undefined;
+}
+
+export function hasFieldError(form: any, name?: string | null, ...aliases: string[]): boolean {
+    return Boolean(fieldError(form, name, ...aliases));
+}

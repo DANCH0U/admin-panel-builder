@@ -59,6 +59,7 @@ class HandleInertiaRequests extends Middleware
                 'language' => admin_language(),
                 'languages' => admin_languages(),
                 'menu' => [],
+                'panels' => $showMenu ? $this->sharePanelsList($key) : [],
             ];
         }
 
@@ -76,7 +77,35 @@ class HandleInertiaRequests extends Middleware
             'language' => admin_language(),
             'languages' => admin_languages(),
             'menu' => $showMenu ? admin_menu($key) : [],
+            'panels' => $showMenu ? $this->sharePanelsList($key) : [],
         ];
+    }
+
+    /**
+     * Visible panels for the user-menu switcher (excludes ->hidden()).
+     *
+     * @return list<array{key: string, name: string, path: string, current: bool}>
+     */
+    protected function sharePanelsList(string $currentKey): array
+    {
+        $list = [];
+
+        foreach (PanelRegistry::all() as $panel) {
+            if ($panel->isHidden()) {
+                continue;
+            }
+
+            $id = $panel->getId();
+
+            $list[] = [
+                'key' => $id,
+                'name' => $panel->getName(),
+                'path' => admin_path('', $id),
+                'current' => $id === $currentKey,
+            ];
+        }
+
+        return $list;
     }
 
     protected function detectPanelKey(Request $request): ?string

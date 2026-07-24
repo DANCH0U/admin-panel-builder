@@ -15,9 +15,9 @@ defineProps<{
 <template>
     <Head :title="title || 'Page'" />
 
-    <div class="mb-6 space-y-1">
-        <h1 class="text-3xl font-semibold tracking-tight">{{ title || 'Page' }}</h1>
+    <div class="mb-4 space-y-1">
+        <h1 class="text-2xl font-semibold leading-tight tracking-tight">{{ title || 'Page' }}</h1>
     </div>
 
-    <SchemaRenderer :schema="schema" :initial-data="initialData" />
+    <SchemaRenderer :schema="schema" :initial-data="initialData" class="space-y-4" />
 </template>

@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import type { SchemaNodeProps } from '../types';
-import { collectDefaults, provideSduiForm } from '../types';
 import { cn } from '@/lib/utils';
-import { useForm } from '@inertiajs/vue3';
+import { useForm, usePage } from '@inertiajs/vue3';
+import { collectDefaults, provideSduiForm } from '../types';
 import SchemaRenderer from '../SchemaRenderer.vue';
+import { watch } from 'vue';
 
 const props = defineProps<SchemaNodeProps>();
+const page = usePage();
 
 const defaults = collectDefaults(props.node.schema ?? []);
 const method = String(props.node.method || 'POST').toUpperCase();
@@ -21,11 +23,34 @@ const form =
 
 provideSduiForm(form);
 
+watch(
+    () => (page.props as any).errors as Record<string, string | string[]> | undefined,
+    (errors) => {
+        if (!errors || !Object.keys(errors).length) return;
+        if (typeof (form as any).setError !== 'function') return;
+        (form as any).clearErrors?.();
+        (form as any).setError(errors);
+    },
+    { deep: true, immediate: true },
+);
+
 function submit() {
     if (!props.node.action) return;
     const current = form as any;
     const verb = method.toLowerCase();
     const options = { forceFormData: true };
+
+    // Ensure File values are included even if added after useForm() init
+    current.transform((data: Record<string, unknown>) => {
+        const next = { ...data };
+        for (const key of Object.keys(current)) {
+            if (key.endsWith('_file') && current[key] instanceof File) {
+                next[key] = current[key];
+            }
+        }
+        return next;
+    });
+
     if (typeof current[verb] === 'function') current[verb](props.node.action, options);
     else if (typeof current.post === 'function') current.post(props.node.action, options);
 }
@@ -41,6 +66,7 @@ function submit() {
             :schema="node.schema"
             :form="form"
             :initial-data="initialData"
+            class="space-y-4"
         />
     </form>
 </template>

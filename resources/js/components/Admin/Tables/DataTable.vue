@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
+    DropdownMenuCheckboxItem,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuLabel,
@@ -40,20 +41,27 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import { router } from '@inertiajs/vue3';
 import {
+    ArrowDown,
+    ArrowUp,
+    ArrowUpDown,
     ChevronDown,
+    Columns3,
     Eye,
     Filter,
     MoreHorizontal,
     Pencil,
     Trash2,
 } from 'lucide-vue-next';
-import { computed, ref, watch, type Component } from 'vue';
+import { computed, onMounted, ref, watch, type Component } from 'vue';
 
 type Column = {
     name: string;
     label?: string;
     type?: string;
     hidden?: boolean;
+    sortable?: boolean;
+    toggleable?: boolean;
+    rounded?: boolean;
     colors?: Record<string, string>;
 };
 
@@ -123,8 +131,8 @@ const props = defineProps<{
 
 const records = computed(() => props.dataset?.records ?? []);
 const schema = computed(() => props.dataset?.schema ?? {});
-const columns = computed(
-    () => (schema.value.columns ?? []).filter((c) => !c.hidden && c.type !== 'table_actions'),
+const allColumns = computed(
+    () => (schema.value.columns ?? []).filter((c) => c.type !== 'table_actions'),
 );
 const selectionColumn = computed(
     () => schema.value.settings?.selection_column ?? 'id',
@@ -144,6 +152,51 @@ const activeTab = ref(schema.value.tabs?.[0]?.value ?? 'all');
 const filters = ref<Record<string, string>>({});
 const selected = ref<Array<string | number>>([]);
 const loading = ref(false);
+const sortBy = ref('');
+const sortOrder = ref<'asc' | 'desc'>('asc');
+/** Visibility for toggleable columns (name → visible) */
+const columnVisibility = ref<Record<string, boolean>>({});
+
+const toggleableColumns = computed(() =>
+    allColumns.value.filter((c) => c.toggleable),
+);
+
+const columns = computed(() =>
+    allColumns.value.filter((c) => {
+        if (c.hidden && !c.toggleable) return false;
+        if (c.toggleable) {
+            return columnVisibility.value[c.name] !== false;
+        }
+        return !c.hidden;
+    }),
+);
+
+function syncColumnVisibility() {
+    for (const column of allColumns.value) {
+        if (!column.toggleable) continue;
+        if (!(column.name in columnVisibility.value)) {
+            // Start hidden only when schema marks it hidden
+            columnVisibility.value[column.name] = !column.hidden;
+        }
+    }
+}
+
+function readQueryState() {
+    const params = new URLSearchParams(window.location.search);
+    search.value = params.get('q') || '';
+    sortBy.value = params.get('sort_by') || '';
+    const order = params.get('sort_order');
+    sortOrder.value = order === 'desc' ? 'desc' : 'asc';
+    const tab = params.get('tab');
+    if (tab) activeTab.value = tab;
+}
+
+onMounted(() => {
+    readQueryState();
+    syncColumnVisibility();
+});
+
+watch(allColumns, () => syncColumnVisibility(), { deep: true });
 
 const confirmOpen = ref(false);
 const pendingAction = ref<TableAction | null>(null);
@@ -182,6 +235,8 @@ function reload(extra: Record<string, any> = {}) {
             q: search.value || undefined,
             tab: activeTab.value !== 'all' ? activeTab.value : undefined,
             search: Object.keys(searchFilters).length ? searchFilters : undefined,
+            sort_by: sortBy.value || undefined,
+            sort_order: sortBy.value ? sortOrder.value : undefined,
             ...extra,
         },
         {
@@ -193,6 +248,23 @@ function reload(extra: Record<string, any> = {}) {
             },
         },
     );
+}
+
+function toggleSort(column: Column) {
+    if (!column.sortable) return;
+    if (sortBy.value === column.name) {
+        sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortBy.value = column.name;
+        sortOrder.value = 'asc';
+    }
+    reload({ page: 1 });
+}
+
+function sortIcon(column: Column) {
+    if (!column.sortable) return null;
+    if (sortBy.value !== column.name) return ArrowUpDown;
+    return sortOrder.value === 'asc' ? ArrowUp : ArrowDown;
 }
 
 function onSearch() {
@@ -493,13 +565,19 @@ const confirmDestructive = computed(
 
                 <Popover v-if="schema.filters?.length">
                     <PopoverTrigger as-child>
-                        <Button type="button" variant="outline" class="gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            class="relative shrink-0"
+                            title="Filters"
+                        >
                             <Filter class="size-4" />
-                            Filters
+                            <span class="sr-only">Filters</span>
                             <Badge
                                 v-if="activeFilterCount"
                                 variant="secondary"
-                                class="h-5 px-1.5"
+                                class="absolute -end-1.5 -top-1.5 h-4 min-w-4 justify-center px-1 text-[10px]"
                             >
                                 {{ activeFilterCount }}
                             </Badge>
@@ -558,6 +636,40 @@ const confirmDestructive = computed(
                         </div>
                     </PopoverContent>
                 </Popover>
+
+                <DropdownMenu v-if="toggleableColumns.length">
+                    <DropdownMenuTrigger as-child>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            class="shrink-0"
+                            title="Columns"
+                        >
+                            <Columns3 class="size-4" />
+                            <span class="sr-only">Columns</span>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" class="w-52 rounded-xl p-1.5">
+                        <DropdownMenuLabel class="px-2 py-1.5 text-xs font-normal text-muted-foreground">
+                            Toggle columns
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuCheckboxItem
+                            v-for="column in toggleableColumns"
+                            :key="column.name"
+                            class="rounded-lg"
+                            :checked="columnVisibility[column.name] !== false"
+                            @update:checked="
+                                (v) => {
+                                    columnVisibility[column.name] = Boolean(v);
+                                }
+                            "
+                        >
+                            {{ column.label || column.name }}
+                        </DropdownMenuCheckboxItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
         </div>
 
@@ -576,7 +688,24 @@ const confirmDestructive = computed(
                             />
                         </TableHead>
                         <TableHead v-for="column in columns" :key="column.name">
-                            {{ column.label || column.name }}
+                            <button
+                                v-if="column.sortable"
+                                type="button"
+                                class="inline-flex items-center gap-1.5 font-medium hover:text-foreground"
+                                :class="
+                                    sortBy === column.name
+                                        ? 'text-foreground'
+                                        : 'text-muted-foreground'
+                                "
+                                @click="toggleSort(column)"
+                            >
+                                <span>{{ column.label || column.name }}</span>
+                                <component
+                                    :is="sortIcon(column)"
+                                    class="size-3.5 opacity-70"
+                                />
+                            </button>
+                            <span v-else>{{ column.label || column.name }}</span>
                         </TableHead>
                         <TableHead class="w-12" />
                     </TableRow>
@@ -622,7 +751,12 @@ const confirmDestructive = computed(
                                 v-else-if="column.type === 'image' && cellValue(row, column)"
                                 :src="String(cellValue(row, column))"
                                 alt=""
-                                class="h-8 w-8 rounded object-cover"
+                                :class="
+                                    cn(
+                                        'h-9 w-9 object-cover ring-1 ring-border',
+                                        column.rounded ? 'rounded-full' : 'rounded-md',
+                                    )
+                                "
                             />
                             <span
                                 v-else-if="column.type === 'json'"

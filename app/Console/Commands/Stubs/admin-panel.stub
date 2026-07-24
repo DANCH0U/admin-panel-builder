@@ -19,6 +19,7 @@ class {{ class }} extends Panel
             ->logo(null)
             ->navbarTitle('{{ title }}')
             ->showThemeToggle(true);
+            // ->hidden(); // hide from user-menu switcher (middleware still guards URL access)
     }
 
     public function menu(): array

@@ -50,10 +50,20 @@ type AdminLanguage = {
     family?: string;
 };
 
+type AdminPanelLink = {
+    key: string;
+    name: string;
+    path: string;
+    current?: boolean;
+};
+
 const panelProps = computed(() => (page.props.panel as any) ?? {});
 const locale = computed(() => String(panelProps.value.locale || 'en'));
 const languages = computed(
     (): AdminLanguage[] => (panelProps.value.languages as AdminLanguage[]) || [],
+);
+const panels = computed(
+    (): AdminPanelLink[] => (panelProps.value.panels as AdminPanelLink[]) || [],
 );
 
 function fontFamilyName(lang?: AdminLanguage | null): string {
@@ -272,6 +282,29 @@ function setLocale(code: string) {
                                 <Moon v-else class="size-4" />
                                 {{ dark ? 'Light' : 'Dark' }}
                             </DropdownMenuItem>
+                            <template v-if="panels.length">
+                                <DropdownMenuSeparator />
+                                <DropdownMenuLabel class="px-2 py-1.5 text-xs text-muted-foreground">
+                                    <span class="inline-flex items-center gap-1.5">
+                                        <LayoutGrid class="size-3.5" />
+                                        Panels
+                                    </span>
+                                </DropdownMenuLabel>
+                                <DropdownMenuItem
+                                    v-for="p in panels"
+                                    :key="p.key"
+                                    as-child
+                                    class="cursor-pointer gap-2 rounded-lg"
+                                >
+                                    <Link :href="p.path">
+                                        <Check
+                                            class="size-4"
+                                            :class="p.current ? 'opacity-100' : 'opacity-0'"
+                                        />
+                                        <span>{{ p.name }}</span>
+                                    </Link>
+                                </DropdownMenuItem>
+                            </template>
                             <DropdownMenuSeparator />
                             <DropdownMenuLabel class="px-2 py-1.5 text-xs text-muted-foreground">
                                 <span class="inline-flex items-center gap-1.5">

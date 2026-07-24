@@ -2,6 +2,7 @@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { isNodeDisabled, optionEntries, type SchemaNodeProps } from '../types';
+import SchemaFieldError from './SchemaFieldError.vue';
 
 const props = defineProps<SchemaNodeProps>();
 
@@ -46,8 +47,6 @@ function toggle(value: string, checked: boolean | 'indeterminate') {
                 <span>{{ opt.label }}</span>
             </label>
         </div>
-        <p v-if="node.name && form?.errors?.[node.name]" class="text-sm text-destructive">
-            {{ form.errors[node.name] }}
-        </p>
+        <SchemaFieldError :form="form" :name="node.name" />
     </div>
 </template>

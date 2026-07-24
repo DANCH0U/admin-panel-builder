@@ -25,6 +25,8 @@ class Panel
 
     protected ?string $home = null;
 
+    protected bool $hidden = false;
+
     public function __construct(string $id)
     {
         $this->id = $id;
@@ -136,6 +138,22 @@ class Panel
     public function getHome(): ?string
     {
         return $this->home;
+    }
+
+    /**
+     * Hide this panel from the user-menu panel switcher.
+     * Middleware still controls access if someone opens the URL directly.
+     */
+    public function hidden(bool $hidden = true): static
+    {
+        $this->hidden = $hidden;
+
+        return $this;
+    }
+
+    public function isHidden(): bool
+    {
+        return $this->hidden;
     }
 
     /**

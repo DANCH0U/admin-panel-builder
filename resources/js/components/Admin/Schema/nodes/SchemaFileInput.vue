@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { isNodeDisabled, type SchemaNodeProps } from '../types';
 import { ImagePlus, Trash2, Upload } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
+import SchemaFieldError from './SchemaFieldError.vue';
 
 const props = defineProps<SchemaNodeProps>();
 const inputRef = ref<HTMLInputElement | null>(null);
@@ -120,11 +121,10 @@ function clear() {
         <p v-if="node.hint || node.helpText" class="text-xs text-muted-foreground">
             {{ node.hint || node.helpText }}
         </p>
-        <p v-if="node.name && form?.errors?.[node.name]" class="text-sm text-destructive">
-            {{ form.errors[node.name] }}
-        </p>
-        <p v-if="form?.errors?.[fileKey]" class="text-sm text-destructive">
-            {{ form.errors[fileKey] }}
-        </p>
+        <SchemaFieldError
+            :form="form"
+            :name="node.name"
+            :aliases="node.name ? [`${node.name}_file`] : []"
+        />
     </div>
 </template>

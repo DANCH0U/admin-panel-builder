@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { isNodeDisabled, type SchemaNodeProps } from '../types';
 import { computed } from 'vue';
+import SchemaFieldError from './SchemaFieldError.vue';
 
 const props = defineProps<SchemaNodeProps>();
 
@@ -62,8 +63,6 @@ function formatJson() {
         <p v-if="node.hint || node.helpText" class="text-xs text-muted-foreground">
             {{ node.hint || node.helpText }}
         </p>
-        <p v-if="node.name && form?.errors?.[node.name]" class="text-sm text-destructive">
-            {{ form.errors[node.name] }}
-        </p>
+        <SchemaFieldError :form="form" :name="node.name" />
     </div>
 </template>

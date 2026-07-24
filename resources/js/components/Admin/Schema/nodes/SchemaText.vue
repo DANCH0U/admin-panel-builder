@@ -5,9 +5,10 @@ defineProps<SchemaNodeProps>();
 
 <template>
     <p
-        class="text-sm"
+        class="m-0 text-sm leading-relaxed"
         :class="{
             'text-muted-foreground': node.variant === 'subdued' || node.variant === 'caption',
+            'text-xs': node.variant === 'caption',
         }"
     >
         {{ (node.content as string) || node.label }}

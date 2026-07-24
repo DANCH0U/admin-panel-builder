@@ -8,6 +8,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { isNodeDisabled, optionEntries, type SchemaNodeProps } from '../types';
+import SchemaFieldError from './SchemaFieldError.vue';
 
 const props = defineProps<SchemaNodeProps>();
 
@@ -41,8 +42,6 @@ function disabled() {
                 </SelectItem>
             </SelectContent>
         </Select>
-        <p v-if="node.name && form?.errors?.[node.name]" class="text-sm text-destructive">
-            {{ form.errors[node.name] }}
-        </p>
+        <SchemaFieldError :form="form" :name="node.name" />
     </div>
 </template>

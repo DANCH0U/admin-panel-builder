@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { isNodeDisabled, type SchemaNodeProps } from '../types';
 import { Minus, Plus } from 'lucide-vue-next';
+import SchemaFieldError from './SchemaFieldError.vue';
 
 const props = defineProps<SchemaNodeProps>();
 
@@ -80,8 +81,6 @@ function stepBy(dir: 1 | -1) {
         <p v-if="node.hint || node.helpText" class="text-xs text-muted-foreground">
             {{ node.hint || node.helpText }}
         </p>
-        <p v-if="node.name && form?.errors?.[node.name]" class="text-sm text-destructive">
-            {{ form.errors[node.name] }}
-        </p>
+        <SchemaFieldError :form="form" :name="node.name" />
     </div>
 </template>

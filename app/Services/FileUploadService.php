@@ -13,7 +13,7 @@ class FileUploadService
         string $directory = 'uploads',
         string $disk = 'public',
     ): string {
-        $filename = Str::random(40) . '.' . $file->getClientOriginalExtension();
+        $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
 
         return $file->storeAs(trim($directory, '/'), $filename, $disk);
     }

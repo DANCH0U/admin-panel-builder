@@ -2,8 +2,9 @@
 
 Laravel 12 + Inertia + Vue 3 admin kit. You define tables and forms in PHP; the UI renders them automatically.
 
-**Login:** `admin@example.com` / `password`  
-**Admin URL:** `/admin`
+This repo ships as a **clean kit** — no panels or demo resources. Follow the steps below to create your first panel and a Posts CRUD.
+
+**Login (after seed):** `admin@example.com` / `password`
 
 ---
 
@@ -16,6 +17,7 @@ php artisan key:generate
 
 # Configure your database in .env, then:
 php artisan migrate --seed
+php artisan storage:link   # required for public file uploads (/storage/…)
 
 npm install
 npm run dev
@@ -23,13 +25,68 @@ npm run dev
 php artisan serve
 ```
 
-Open [http://127.0.0.1:8000/admin](http://127.0.0.1:8000/admin) and sign in.
-
-`migrate --seed` creates the admin user. Frontend needs `npm run dev` (or `npm run build`) while you work.
+`migrate --seed` creates the admin user. `storage:link` makes files on the `public` disk available at `/storage/...`. Keep `npm run dev` (or `npm run build`) running while you work.
 
 ---
 
-## 2. Create a Post model + migration
+## 2. Create your first panel
+
+A **panel** is one admin area (URL prefix, middleware, branding, sidebar menu).
+
+```bash
+php artisan make:admin-panel admin
+```
+
+This creates:
+
+| File | Purpose |
+|------|---------|
+| `app/AdminPanel/Panels/AdminPanel.php` | Settings + `menu()` |
+| `routes/panels/admin.php` | Dashboard + profile routes |
+
+…and registers the class in `app/Providers/AdminPanelProvider.php`.
+
+Tighten the panel for a full admin area (middleware + branding):
+
+```php
+// app/AdminPanel/Panels/AdminPanel.php
+$this
+    ->prefix('admin')
+    ->middleware(['auth', 'admin', 'panel:admin']) // admin middleware → is_admin users only
+    ->name('Admin Panel')
+    ->logo('/admin-logo.svg')
+    ->navbarTitle('Admin Panel')
+    ->showThemeToggle(true);
+```
+
+Open [http://127.0.0.1:8000/admin](http://127.0.0.1:8000/admin) and sign in.
+
+### Extra panels
+
+```bash
+php artisan make:admin-panel vendor --prefix=vendor
+```
+
+Each panel gets its own class, routes file, and entry in `AdminPanelProvider::$panels`.
+
+### Panel switcher (user menu)
+
+The sidebar user menu lists every panel that is **not** marked hidden. Click a panel to jump to its home URL.
+
+```php
+$this
+    ->prefix('vendor')
+    ->middleware(['auth', 'panel:vendor'])
+    ->name('Vendor Panel')
+    ->hidden(); // not shown in the switcher
+```
+
+- **`->hidden()`** — hides the panel from the user-menu list only  
+- **Middleware** still controls access. A visible panel can still return **403 Unauthorized** if the user fails `admin` / other guards when they open the URL
+
+---
+
+## 3. Create a Post model + migration
 
 Admin generators **do not** create models or migrations. Create them yourself first.
 
@@ -45,6 +102,8 @@ Schema::create('posts', function (Blueprint $table) {
     $table->string('title');
     $table->text('description')->nullable();
     $table->string('image')->nullable();
+    $table->string('status')->default('draft'); // draft | published
+    $table->boolean('is_active')->default(true);
     $table->timestamps();
 });
 ```
@@ -56,7 +115,16 @@ protected $fillable = [
     'title',
     'description',
     'image',
+    'status',
+    'is_active',
 ];
+
+protected function casts(): array
+{
+    return [
+        'is_active' => 'boolean',
+    ];
+}
 ```
 
 Run:
@@ -64,61 +132,6 @@ Run:
 ```bash
 php artisan migrate
 ```
-
----
-
-## 3. Panels — how they work
-
-A **panel** is one admin area (its own URL prefix, middleware, branding, and sidebar menu).
-
-- Classes live in `app/AdminPanel/Panels/`
-- They are listed in `app/Providers/AdminPanelProvider.php`
-- Routes live in `routes/panels/{key}.php`
-
-The project already ships with **`AdminPanel`** (`/admin`). Open it:
-
-```php
-// app/AdminPanel/Panels/AdminPanel.php
-class AdminPanel extends Panel
-{
-    public function __construct()
-    {
-        parent::__construct('admin');
-
-        $this
-            ->prefix('admin')
-            ->middleware(['auth', 'admin', 'panel:admin'])
-            ->name('Admin Panel')
-            ->logo('/admin-logo.svg');
-    }
-
-    public function menu(): array
-    {
-        return PanelMenu::make()
-            ->default()
-            ->build();
-    }
-}
-```
-
-### Create another panel (optional)
-
-```bash
-php artisan make:admin-panel vendor
-# or with a custom URL prefix:
-php artisan make:admin-panel vendor --prefix=vendor
-```
-
-This creates:
-
-| File | Purpose |
-|------|---------|
-| `app/AdminPanel/Panels/VendorPanel.php` | Settings + `menu()` |
-| `routes/panels/vendor.php` | Routes for that panel |
-
-…and registers the class in `AdminPanelProvider::$panels`.
-
-For the Post tutorial below, use the existing **`admin`** panel.
 
 ---
 
@@ -132,7 +145,7 @@ For the Post tutorial below, use the existing **`admin`** panel.
 | `make:admin-resource {name} --panel=` | Table resource + controller (CRUD list) |
 | `make:admin-resource … --form` | Also create/edit form page |
 | `make:admin-resource … --view` | Also show/view page |
-| `make:admin-table {name} --panel=` | Resource only (optional Vue index via older path) |
+| `make:admin-table {name} --panel=` | Resource only |
 | `make:admin-page {name} --panel=` | Standalone schema page |
 
 **Important:** these commands do **not** create models or migrations.
@@ -152,12 +165,18 @@ Creates:
 
 ### Add routes
 
-Paste into `routes/panels/admin.php` (the command prints this):
+Paste into `routes/panels/admin.php` and **save the file** (the command prints this):
 
 ```php
 Route::post('/posts/bulk', [\App\Http\Controllers\Admin\PostController::class, 'bulk'])
     ->name('posts.bulk');
 Route::resource('posts', \App\Http\Controllers\Admin\PostController::class);
+```
+
+Confirm routes are loaded:
+
+```bash
+php artisan route:list --path=admin/posts
 ```
 
 ### Add a sidebar link
@@ -181,6 +200,8 @@ public function menu(): array
 }
 ```
 
+Icons come from **[Iconify](https://icon-sets.iconify.design/)**. Use `collection:icon-name` (e.g. `heroicons:rectangle-stack`, `mdi:home`, `lucide:settings`).
+
 Open `/admin/posts`.
 
 ### Authorization
@@ -195,19 +216,20 @@ public function authorize(): bool
 ```
 
 - **Resource** `authorize()` — blocks index, bulk actions, delete  
-- **Form / view page** `authorize()` — blocks create/edit/show (and store/update via `authorizeOrFail()`)
+- **Form / view page** `authorize()` — blocks create/edit/show (and store/update via `authorizeOrFail()`)  
+- **Panel middleware** — e.g. `admin` requires `is_admin`; fails → unauthorized even if the panel is visible in the switcher  
 
 ---
 
 ## 5. Customize fields (form + view + table)
 
-Scaffolded files use a `name` field by default. Change them to match **title / description / image**.
+Scaffolded resources include **status tabs** and an **is_active** select filter by default. For Posts, also wire **title / description / image / status / is_active** in the form.
 
 ### Create & edit — `PostFormPage`
 
 ```php
 use App\AdminPanel\Schema\{
-    Button, Card, FileInput, Flex, Form, Textarea, TextInput
+    Button, Card, FileInput, Flex, Form, Select, Textarea, TextInput, Toggle
 };
 
 public function schema(): array
@@ -229,6 +251,17 @@ public function schema(): array
                     FileInput::make('image')
                         ->label('Image')
                         ->image(),
+
+                    Select::make('status')
+                        ->label('Status')
+                        ->options([
+                            'draft' => 'Draft',
+                            'published' => 'Published',
+                        ])
+                        ->required(),
+
+                    Toggle::make('is_active')
+                        ->label('Active'),
                 ]),
                 Flex::make()->justify('end')->schema([
                     Button::make('Save')->submit(),
@@ -239,19 +272,97 @@ public function schema(): array
 
 public function initialData(): array
 {
+    $uploads = app(\App\Services\FileUploadService::class);
+
     return [
         'title' => $this->post?->title ?? '',
         'description' => $this->post?->description ?? '',
-        'image' => $this->post?->image ?? '',
+        'image' => $uploads->url($this->post?->image) ?? '',
+        'image_file' => null, // required so Inertia can submit the File
+        'status' => $this->post?->status ?? 'draft',
+        'is_active' => $this->post?->is_active ?? true,
     ];
 }
 ```
 
-Update validation in `PostController` (`store` / `update`) to use `title`, `description`, `image` instead of `name`.
+### Create & update — `PostController` + `FileUploadService`
+
+FileInput submits the file as `{field}_file` (e.g. `image_file`). The form must include that key in initial data so Inertia sends it. Upload with `App\Services\FileUploadService` **before** saving the model:
+
+```php
+use App\Services\FileUploadService;
+
+public function store(Request $request, FileUploadService $uploads)
+{
+    (new PostFormPage(action: admin_path('posts'), method: 'POST'))->authorizeOrFail();
+
+    $validated = $request->validate([
+        'title' => ['required', 'string', 'max:255'],
+        'description' => ['nullable', 'string'],
+        'image_file' => ['nullable', 'image', 'max:2048'],
+        'status' => ['required', 'in:draft,published'],
+        'is_active' => ['sometimes', 'boolean'],
+    ]);
+
+    $validated['is_active'] = $request->boolean('is_active');
+
+    if ($request->hasFile('image_file')) {
+        $validated['image'] = $uploads->upload($request->file('image_file'), 'posts');
+    }
+
+    Post::create($validated);
+    Notify::success('Post created.');
+
+    return redirect()->route('posts.index');
+}
+
+public function update(Request $request, Post $post, FileUploadService $uploads)
+{
+    (new PostFormPage(
+        action: admin_path('posts/'.$post->getKey()),
+        method: 'PUT',
+        post: $post,
+    ))->authorizeOrFail();
+
+    $validated = $request->validate([
+        'title' => ['required', 'string', 'max:255'],
+        'description' => ['nullable', 'string'],
+        'image_file' => ['nullable', 'image', 'max:2048'],
+        'status' => ['required', 'in:draft,published'],
+        'is_active' => ['sometimes', 'boolean'],
+    ]);
+
+    $validated['is_active'] = $request->boolean('is_active');
+
+    if ($request->hasFile('image_file')) {
+        $uploads->delete($post->image); // remove old file
+        $validated['image'] = $uploads->upload($request->file('image_file'), 'posts');
+    }
+
+    $post->update($validated);
+    Notify::success('Post updated.');
+
+    return redirect()->route('posts.index');
+}
+```
+
+On delete, remove the file too:
+
+```php
+public function destroy(Post $post, FileUploadService $uploads)
+{
+    (new PostResource())->authorizeOrFail();
+    $uploads->delete($post->image);
+    $post->delete();
+    Notify::success('Post deleted.');
+
+    return back();
+}
+```
+
+`$uploads->upload()` stores on the `public` disk (e.g. `posts/uuid.jpg`) and returns that relative path. With `php artisan storage:link`, the file is served at `/storage/posts/uuid.jpg`.
 
 ### View (show) — `PostViewPage`
-
-Use read-only UI like `KeyValue` / `Heading` / `Text`:
 
 ```php
 use App\AdminPanel\Schema\{Card, Heading, KeyValue, Text};
@@ -276,9 +387,12 @@ public function schema(): array
 
 ### DataGrid (index table) — `PostResource`
 
+Generated resources include status **tabs** and an **is_active** filter. Example for Posts:
+
 ```php
 use App\AdminPanel\Tables\{
-    Action, BulkAction, ImageColumn, Search, TextColumn
+    Action, BadgeColumn, BooleanColumn, BulkAction, ImageColumn,
+    Search, SelectFilter, Tab, Tabs, TextColumn
 };
 
 public function schema(): array
@@ -289,17 +403,40 @@ public function schema(): array
             Search::column('title')->weight(3),
             Search::column('description')->weight(1),
         ],
+        'tabs' => Tabs::make([
+            Tab::make('all'),
+            Tab::make('draft')
+                ->query(fn ($q) => $q->where('status', 'draft'))
+                ->color('warning'),
+            Tab::make('published')
+                ->query(fn ($q) => $q->where('status', 'published'))
+                ->color('success'),
+        ]),
         'columns' => [
             TextColumn::make('id')->label('ID')->sortable(),
-            ImageColumn::make('image')->label('Image')->rounded(),
+            ImageColumn::make('image')->label('Image')->rounded(), // auto public URL
             TextColumn::make('title')->label('Title')->sortable(),
             TextColumn::make('description')->label('Description')->toggleable(),
+            BadgeColumn::make('status')
+                ->label('Status')
+                ->colors([
+                    'warning' => 'draft',
+                    'success' => 'published',
+                ]),
+            BooleanColumn::make('is_active')->label('Active'),
             TextColumn::make('created_at')
                 ->label('Created')
                 ->sortable()
                 ->transform(fn ($v) => $v ? \Carbon\Carbon::parse($v)->format('M d, Y') : null),
         ],
-        'filters' => [],
+        'filters' => [
+            SelectFilter::make('is_active')
+                ->label('Active')
+                ->options([
+                    '1' => 'Active',
+                    '0' => 'Inactive',
+                ]),
+        ],
         'actions' => [
             Action::make('view')->url(fn ($r) => admin_path('posts/'.$r['id'])),
             Action::make('edit')->url(fn ($r) => admin_path('posts/'.$r['id'].'/edit')),
@@ -319,6 +456,8 @@ public function schema(): array
 }
 ```
 
+Toolbar **Filters** and **Columns** controls are icon-only. Image columns resolve storage paths to public `/storage/...` URLs automatically.
+
 ### Useful inputs (forms)
 
 | Component | Example |
@@ -337,10 +476,13 @@ public function schema(): array
 
 | Component | Example |
 |-----------|---------|
-| `TextColumn` | `TextColumn::make('title')->sortable()` |
+| `TextColumn` | `TextColumn::make('title')->sortable()` — click header to sort |
 | `ImageColumn` | `ImageColumn::make('image')->rounded()` |
 | `BadgeColumn` | `BadgeColumn::make('status')->colors(['success' => 'published'])` |
 | `BooleanColumn` | `BooleanColumn::make('featured')` |
+
+- **`->sortable()`** — column header is clickable; sends `sort_by` / `sort_order` to the server  
+- **`->toggleable()`** — column appears in the **Columns** menu so users can show/hide it  
 
 Layout helpers for forms: `Card`, `Grid`, `Flex`, `Section`, `Tabs`.
 
@@ -351,19 +493,20 @@ Layout helpers for forms: `Card`, `Grid`, `Flex`, `Section`, `Tabs`.
 ```bash
 # 1. Install
 composer install && cp .env.example .env && php artisan key:generate
-php artisan migrate --seed && npm install && npm run dev
+php artisan migrate --seed && php artisan storage:link && npm install && npm run dev
 
-# 2. Model
+# 2. First panel
+php artisan make:admin-panel admin
+# Edit AdminPanel: middleware ['auth', 'admin', 'panel:admin']
+
+# 3. Model
 php artisan make:model Post -m
 php artisan migrate
-
-# 3. Panel (already have admin; or make another)
-# php artisan make:admin-panel vendor
 
 # 4. Resource + pages
 php artisan make:admin-resource Post --panel=admin --form --view
 
-# 5. Add routes + menu, then customize fields for title / description / image
+# 5. Add routes + menu, then customize form for title / description / image / status / is_active
 ```
 
-Login: **admin@example.com** / **password** → `/admin/posts`
+Login: **admin@example.com** / **password** → `/admin` → `/admin/posts`

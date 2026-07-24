@@ -6,6 +6,7 @@ import SchemaRenderer from '../SchemaRenderer.vue';
 import { collectDefaults, isNodeDisabled, type SchemaNode, type SchemaNodeProps } from '../types';
 import { ChevronDown, ChevronUp, GripVertical, Plus, Trash2 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
+import SchemaFieldError from './SchemaFieldError.vue';
 
 const props = defineProps<SchemaNodeProps>();
 const collapsed = ref<Record<number, boolean>>({});
@@ -213,8 +214,6 @@ function rowErrors(index: number): string | undefined {
             </div>
         </div>
 
-        <p v-if="node.name && form?.errors?.[node.name]" class="text-sm text-destructive">
-            {{ form.errors[node.name] }}
-        </p>
+        <SchemaFieldError :form="form" :name="node.name" />
     </div>
 </template>

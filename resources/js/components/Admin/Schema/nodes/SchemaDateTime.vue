@@ -9,6 +9,7 @@ import { isNodeDisabled, type SchemaNodeProps } from '../types';
 import { CalendarDate, type DateValue, parseDate } from '@internationalized/date';
 import { CalendarIcon } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
+import SchemaFieldError from './SchemaFieldError.vue';
 
 const props = defineProps<SchemaNodeProps>();
 const open = ref(false);
@@ -110,8 +111,6 @@ function onTime(time: string) {
         <p v-if="node.hint || node.helpText" class="text-xs text-muted-foreground">
             {{ node.hint || node.helpText }}
         </p>
-        <p v-if="node.name && form?.errors?.[node.name]" class="text-sm text-destructive">
-            {{ form.errors[node.name] }}
-        </p>
+        <SchemaFieldError :form="form" :name="node.name" />
     </div>
 </template>

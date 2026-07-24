@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { isNodeDisabled, type SchemaNodeProps } from '../types';
 import { Plus, Trash2 } from 'lucide-vue-next';
+import SchemaFieldError from './SchemaFieldError.vue';
 
 const props = defineProps<SchemaNodeProps>();
 
@@ -78,8 +79,6 @@ function removeAt(index: number) {
             {{ node.addLabel || 'Add item' }}
         </Button>
 
-        <p v-if="node.name && form?.errors?.[node.name]" class="text-sm text-destructive">
-            {{ form.errors[node.name] }}
-        </p>
+        <SchemaFieldError :form="form" :name="node.name" />
     </div>
 </template>

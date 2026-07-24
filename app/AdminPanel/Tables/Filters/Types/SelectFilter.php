@@ -26,6 +26,17 @@ class SelectFilter extends AbstractFilter
 
     public function apply(Builder $query, mixed $value): void
     {
+        if ($value === '' || $value === null) {
+            return;
+        }
+
+        // Support boolean filters sent as "1" / "0"
+        if ($value === '1' || $value === '0' || $value === 1 || $value === 0 || is_bool($value)) {
+            $query->where($this->column, filter_var($value, FILTER_VALIDATE_BOOLEAN) || $value === '1' || $value === 1);
+
+            return;
+        }
+
         $query->where($this->column, $value);
     }
 
