@@ -45,16 +45,7 @@ class PanelMenu
 
     public function admin(): static
     {
-        return $this
-            ->section('builder', [
-                MenuItem::link('tests', admin_path('tests'))
-                    ->icon('heroicons:beaker')
-                    ->title('Tests'),
-            ])
-            ->section('settings', [
-                MenuItem::link('panel_settings', admin_path('settings'))
-                    ->icon('heroicons:cog-6-tooth'),
-            ]);
+        return $this;
     }
 
     public function build(): array

@@ -1,6 +1,6 @@
 <?php
 
-namespace {{ namespace }};
+namespace App\AdminPanel\Pages\Admin;
 
 use App\AdminPanel\Engine\BasePage;
 use App\AdminPanel\Schema\Button;
@@ -8,20 +8,20 @@ use App\AdminPanel\Schema\Card;
 use App\AdminPanel\Schema\Flex;
 use App\AdminPanel\Schema\Form;
 use App\AdminPanel\Schema\TextInput;
-use {{ modelFqcn }};
+use App\Models\Post;
 
-class {{ class }} extends BasePage
+class PostFormPage extends BasePage
 {
     public function __construct(
         protected string $action,
         protected string $method = 'POST',
         protected ?string $pageTitle = null,
-        protected ?{{ modelClass }} ${{ modelVar }} = null,
+        protected ?Post $post = null,
     ) {}
 
     public function title(): ?string
     {
-        return $this->pageTitle ?? ($this->{{ modelVar }} ? 'Edit {{ titleSingular }}' : 'Create {{ titleSingular }}');
+        return $this->pageTitle ?? ($this->post ? 'Edit Post' : 'Create Post');
     }
 
     public function schema(): array
@@ -33,7 +33,7 @@ class {{ class }} extends BasePage
                 ->schema([
                     Card::make()
                         ->border()
-                        ->label('{{ titleSingular }}')
+                        ->label('Post')
                         ->schema([
                             TextInput::make('name')
                                 ->label('Name')
@@ -49,7 +49,7 @@ class {{ class }} extends BasePage
     public function initialData(): array
     {
         return [
-            'name' => $this->{{ modelVar }}?->name ?? '',
+            'name' => $this->post?->name ?? '',
         ];
     }
 }

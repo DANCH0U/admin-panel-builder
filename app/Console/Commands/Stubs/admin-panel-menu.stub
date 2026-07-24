@@ -2,12 +2,13 @@
 
 namespace App\AdminPanel\Menus;
 
+use App\AdminPanel\Menu\MenuItem;
 use App\AdminPanel\Menu\PanelMenu;
 
 /**
- * Sidebar menu for the default `admin` panel.
+ * Sidebar menu for the `{{ panel }}` panel.
  */
-class AdminMenu
+class {{ class }}
 {
     public static function build(): array
     {

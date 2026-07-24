@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import DataTable from '@/components/Admin/Tables/DataTable.vue';
 import { Button } from '@/components/ui/button';
-import { useAdminConfig } from '@/composables/useAdminConfig';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
 
@@ -9,26 +8,25 @@ defineOptions({ layout: AdminLayout });
 
 defineProps<{
     resource: Record<string, unknown>;
+    title: string;
+    description?: string | null;
+    createUrl?: string | null;
+    createLabel?: string | null;
 }>();
-
-const { adminPath } = useAdminConfig();
 </script>
 
 <template>
-    <Head title="Tests" />
+    <Head :title="title" />
 
     <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div class="space-y-1">
-            <p class="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                Resource
-            </p>
-            <h1 class="text-3xl font-semibold tracking-tight">Tests</h1>
-            <p class="max-w-xl text-sm text-muted-foreground">
-                Sample table resource powered by the DataGrid engine.
+            <h1 class="text-3xl font-semibold tracking-tight">{{ title }}</h1>
+            <p v-if="description" class="max-w-xl text-sm text-muted-foreground">
+                {{ description }}
             </p>
         </div>
-        <Button class="rounded-xl px-4" as-child>
-            <Link :href="adminPath('tests/create')">Add test</Link>
+        <Button v-if="createUrl" class="rounded-xl px-4" as-child>
+            <Link :href="createUrl">{{ createLabel || 'Add' }}</Link>
         </Button>
     </div>
 

@@ -13,13 +13,13 @@ Laravel 12 + Inertia + Vue 3 kit for building **admin panels** with a PHP schema
 |------|----------------|
 | **Data tables** | Search, tabs, filters, sortable columns, row actions, bulk actions, pagination, CSV export (engine), relation/nested JSON columns |
 | **Forms & pages** | Schema-driven create/edit/view pages — inputs, selects, files, JSON editors, conditionals, layout |
-| **Multi-panel** | Multiple panels (prefix, middleware, menu, DB settings each) |
-| **Branding** | Per-panel name, logo, navbar title, theme toggle (database) |
+| **Multi-panel** | Multiple panels via `PanelRegistry` (prefix, middleware, menu, branding each) |
+| **Branding** | Per-panel name, logo, navbar title, theme toggle (defined in `AdminPanelProvider`) |
 | **Auth** | Admin-only login, profile update, delete account |
 | **i18n** | Multi-locale + per-language Google Fonts (e.g. English / Arabic + Cairo) |
 | **Theme** | Light / dark mode |
 | **Toasts** | Success / info / warning / danger notifications with optional action links |
-| **Scaffolding** | Artisan generators for resources, tables, and pages (**not** models/migrations) |
+| **Scaffolding** | Artisan generators for panels, resources, tables, and pages (**not** models/migrations) |
 | **Demo** | Seeded Tests CRUD showcasing the full stack |
 
 ---
@@ -42,7 +42,7 @@ Open `/admin` and sign in.
 
 | Seeder | Creates |
 |--------|---------|
-| `DatabaseSeeder` | Admin user + `panel_settings` rows for each configured panel |
+| `DatabaseSeeder` | Admin user |
 | `TestSeeder` | Sample **Tests** records (statuses, tags, JSON metadata, images, …) |
 
 ```bash
@@ -56,27 +56,32 @@ php artisan db:seed --class=TestSeeder
 
 ```
 app/AdminPanel/
+  Panel.php / PanelRegistry.php
   Schema/          Forms, layout, fields, UI (public API)
   Tables/          Columns, filters, tabs, actions, bulk actions
-  Pages/           Schema-driven pages (forms, views, settings, profile)
-  Resources/       DataGrid table definitions
+  Pages/{Panel}/   Schema-driven pages per panel (forms, views)
+  Resources/{Panel}/  DataGrid table definitions per panel
   Menus/           Per-panel sidebar menus
   Menu/            PanelMenu / MenuItem builders
   Notifications/   Notify + FlashBag
   Engine/          BasePage, BaseResource, DataGridEngine (+ pipeline)
 
-app/Models/PanelSetting.php
+app/Providers/AdminPanelProvider.php
+app/Http/Controllers/{Panel}/
 app/Http/Middleware/ResolveAdminPanel.php
+routes/panels/{key}.php
 
 resources/js/
   components/Admin/Schema/   SchemaRenderer + field nodes
   components/Admin/Tables/   DataTable
   layouts/AdminLayout.vue
-  pages/Admin/
+  pages/Admin/ResourceIndex.vue   # generic table index
+  pages/Admin/SchemaPage.vue      # generic form/view page
 ```
 
 **Import these namespaces:**
 
+- `App\AdminPanel\{Panel, PanelRegistry}`
 - `App\AdminPanel\Schema\*`
 - `App\AdminPanel\Tables\*`
 - `App\AdminPanel\Engine\{BasePage, BaseResource, DataGridEngine}`
@@ -87,77 +92,82 @@ resources/js/
 
 ## Artisan commands
 
-Generators scaffold AdminPanel PHP + Vue only. They **do not** create Eloquent models, migrations, factories, or seeders — create those yourself first.
+Generators scaffold AdminPanel PHP only. They **do not** create Eloquent models, migrations, factories, or seeders — create those yourself first. Resource/table/page commands require `--panel=` (registry id or URL prefix).
+
+### `make:admin-panel`
+
+```bash
+php artisan make:admin-panel vendor
+php artisan make:admin-panel vendor --prefix=vendor
+```
+
+Creates a menu class + `routes/panels/{key}.php`, then prints the `PanelRegistry::register(...)` snippet to add in `AdminPanelProvider`.
 
 ### `make:admin-resource` (recommended)
 
-Full CRUD slice: resource + controller + Vue index; optional form/view pages.
+Full CRUD slice: resource + controller; optional form/view pages. Index uses generic `Admin/ResourceIndex`.
 
 ```bash
-php artisan make:admin-resource Post
-php artisan make:admin-resource Post --form
-php artisan make:admin-resource Post --view
-php artisan make:admin-resource Post --form --view
-php artisan make:admin-resource Post --model=App\\Models\\Post --form --view
-php artisan make:admin-resource Post --form --view --force
+php artisan make:admin-resource Post --panel=admin
+php artisan make:admin-resource Post --panel=admin --form
+php artisan make:admin-resource Post --panel=admin --view
+php artisan make:admin-resource Post --panel=admin --form --view
+php artisan make:admin-resource Post --panel=admin --model=App\\Models\\Post --form --view
+php artisan make:admin-resource Post --panel=admin --form --view --force
 ```
 
 | File | When |
 |------|------|
-| `app/AdminPanel/Resources/PostResource.php` | always |
-| `app/Http/Controllers/Admin/PostController.php` | always |
-| `resources/js/pages/Admin/Posts/Index.vue` | always |
-| `app/AdminPanel/Pages/PostFormPage.php` | `--form` |
-| `app/AdminPanel/Pages/PostViewPage.php` | `--view` |
+| `app/AdminPanel/Resources/{Panel}/PostResource.php` | always |
+| `app/Http/Controllers/{Panel}/PostController.php` | always |
+| `app/AdminPanel/Pages/{Panel}/PostFormPage.php` | `--form` |
+| `app/AdminPanel/Pages/{Panel}/PostViewPage.php` | `--view` |
 
-Then wire routes into `routes/admin.php` and a menu item in your panel menu class (the command prints both).
+Then wire routes into `routes/panels/{panel}.php` and a menu item in that panel’s menu class (the command prints both).
 
 ### `make:admin-table` / `make:admin-page`
 
 ```bash
-php artisan make:admin-table Product --model=App\\Models\\Product
-php artisan make:admin-table Product --model=App\\Models\\Product --page
-php artisan make:admin-page CustomSettings
+php artisan make:admin-table Product --panel=admin --model=App\\Models\\Product
+php artisan make:admin-page Reports --panel=admin
 ```
+
+Pages render with `Admin/SchemaPage`; tables with `Admin/ResourceIndex`.
 
 ---
 
 ## Multi-panel
 
-Each panel in `config/admin.php` has its own URL prefix, middleware, menu class, and `panel_settings` DB row.
+Panels are registered in `App\Providers\AdminPanelProvider` via `PanelRegistry` (not the database):
 
 ```php
-'panels' => [
-    'admin' => [
-        'name' => 'Admin Panel',
-        'prefix' => 'admin',
-        'middleware' => ['auth', 'admin', 'panel:admin'],
-        'menu' => \App\AdminPanel\Menus\AdminMenu::class,
-        'auth' => ['login_route' => 'login', 'home' => null],
-        'ui' => [
-            'logo_url' => '/admin-logo.svg',
-            'navbar_title' => 'Admin Panel',
-            'show_theme_toggle' => true,
-        ],
-    ],
-    // Add another panel (vendor, etc.) the same way + its own route group.
-],
+PanelRegistry::register('admin', function (Panel $panel) {
+    $panel
+        ->prefix('admin')
+        ->middleware(['auth', 'admin', 'panel:admin'])
+        ->name('Admin Panel')
+        ->logo('/admin-logo.svg')
+        ->navbarTitle('Admin Panel')
+        ->menu(AdminMenu::class);
+});
 ```
 
-`ResolveAdminPanel` (`panel:admin`) binds the current panel. Helpers then resolve prefix, paths, menu, and settings for that panel.
+`routes/admin.php` loads each panel’s `routes/panels/{id}.php` under that panel’s prefix + middleware.
 
-**To add a panel:** config entry → menu class → route group with `panel:{key}` → migrate/seed creates `panel_settings`.
+`ResolveAdminPanel` (`panel:admin`) binds the current panel. Helpers then resolve prefix, paths, menu, and branding.
+
+**To add a panel:** `php artisan make:admin-panel vendor` → paste the registration into `AdminPanelProvider` → add routes in `routes/panels/vendor.php`.
 
 ---
 
-## Auth, profile & settings
+## Auth & profile
 
 | Feature | Details |
 |---------|---------|
 | **Login** | `/admin/login` — must authenticate and have `is_admin`; lands on `admin_home()` |
 | **Logout** | Invalidates session → login |
 | **Profile** | `/admin/profile` — name, email, password; delete account with password confirm |
-| **Panel settings** | `/admin/settings` — app name, logo URL, navbar title, theme toggle → `panel_settings` for **current** panel |
+| **Branding** | Defined on the Panel in `AdminPanelProvider` (name, logo, navbar title, theme toggle) |
 
 Middleware: `auth` (guest → login), `admin` (`isAdmin()` or 403), `panel:{key}` (resolve panel).
 
@@ -327,7 +337,7 @@ return Inertia::render('Admin/SchemaPage', $page->toInertia([
 ]));
 ```
 
-See `TestFormPage`, `TestViewPage`, `SettingsPage`, `ProfilePage` for full examples.
+See `TestFormPage`, `TestViewPage`, `ProfilePage` for full examples.
 
 ---
 
@@ -361,10 +371,6 @@ PanelMenu::make()
         MenuItem::link('tests', admin_path('tests'))
             ->icon('heroicons:beaker')
             ->title('Tests'),
-    ])
-    ->section('settings', [
-        MenuItem::link('panel_settings', admin_path('settings'))
-            ->icon('heroicons:cog-6-tooth'),
     ])
     ->build();
 ```
@@ -407,13 +413,13 @@ Configured in `config/admin.php` (no enum). Each language needs `label`, `locale
 
 ```php
 admin_panel();                 // current panel key
-admin_panel_config();          // config for panel
+admin_panel_instance();        // Panel object
+admin_panel_config();          // array shape for panel
 admin_prefix();                // "admin"
 admin_path('tests');           // "/admin/tests"
 admin_url('tests');            // absolute
 admin_home();                  // post-login path
 admin_menu();                  // sidebar items
-admin_settings();              // PanelSetting model for panel
 admin_languages();
 admin_locales();
 admin_language();
@@ -428,10 +434,11 @@ notify('success', 'Done');
 | Key | Purpose |
 |-----|---------|
 | `default` | Default panel key |
-| `panels.*` | Per-panel name, prefix, middleware, menu, auth, UI defaults |
 | `languages` / `default_locale` | Locales + fonts |
 | `uploads` | Max size, image mimes, disk |
 | `table` | Default per-page, options, tab count cache |
+
+Panels (prefix, middleware, name, logo, menu) live in `AdminPanelProvider`, not this config file.
 
 Useful env: `ADMIN_PREFIX`, `ADMIN_NAME`, `ADMIN_DEFAULT_PANEL`, `ADMIN_LOCALE`, `ADMIN_LOGO_URL`, `ADMIN_TABLE_PER_PAGE`, `ADMIN_TABLE_TAB_COUNTS`, `ADMIN_MAX_UPLOAD_KB`, `ADMIN_UPLOAD_DISK`.
 
@@ -465,7 +472,6 @@ More detail: `SDUI_DOCUMENTATION.md`.
 | `/admin` | Dashboard |
 | `/admin/login` | Login |
 | `/admin/tests` | Sample DataGrid CRUD |
-| `/admin/settings` | Panel branding |
 | `/admin/profile` | Account |
 | `/admin/demo/notifications/{type}` | Toast demo |
 | `/locale/{locale}` | Switch language |

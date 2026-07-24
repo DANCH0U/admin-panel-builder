@@ -7,15 +7,16 @@ Application code should use the public `App\AdminPanel\Schema` and `App\AdminPan
 ## Generate a page or table
 
 ```bash
-php artisan make:admin-page Settings
-php artisan make:admin-table Product --model=App\\Models\\Product
-php artisan make:admin-table Product --model=App\\Models\\Product --page
+php artisan make:admin-page Reports --panel=admin
+php artisan make:admin-table Product --panel=admin --model=App\\Models\\Product
+php artisan make:admin-resource Post --panel=admin --form --view
 ```
 
-`make:admin-page` creates `app/AdminPanel/Pages/SettingsPage.php` and a small Vue schema renderer.
+`make:admin-page` creates `app/AdminPanel/Pages/ReportsPage.php`. Render it with the generic `Admin/SchemaPage` Inertia page.
 
-`make:admin-table` creates `app/AdminPanel/Resources/ProductResource.php`. Add `--page` to also generate its Vue index page. `make:admin-resource` remains available as a backward-compatible alias.
+`make:admin-table` / `make:admin-resource` create resources (and controllers for resource). Table indexes use generic `Admin/ResourceIndex` — no per-resource Vue file.
 
+All three commands require `--panel=` (registry id or URL prefix).
 ## Forms and pages
 
 Create a page by extending `BasePage` and returning public schema components:
@@ -163,8 +164,12 @@ public function index(
     DataGridEngine $engine,
     TestResource $resource,
 ) {
-    return Inertia::render('Admin/Tests/Index', [
+    return Inertia::render('Admin/ResourceIndex', [
         'resource' => $engine->handle($resource, $request),
+        'title' => 'Tests',
+        'description' => 'Sample table resource powered by the DataGrid engine.',
+        'createUrl' => admin_path('tests/create'),
+        'createLabel' => 'Add test',
     ]);
 }
 ```
@@ -179,7 +184,7 @@ The grid engine does not apply tenant constraints automatically. Multi-tenancy o
 
 ## Configuration
 
-All admin panel settings live in `config/admin.php` and can be overridden via `.env`:
+Shared settings (languages, uploads, table defaults) live in `config/admin.php`. Panel branding, prefix, and middleware are registered in `App\Providers\AdminPanelProvider` via `PanelRegistry`.
 
 ```env
 ADMIN_NAME="Admin Panel"

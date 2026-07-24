@@ -3,7 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\AdminPanel\Notifications\FlashBag;
-use App\Models\PanelSetting;
+use App\AdminPanel\PanelRegistry;
 use App\Support\CachedTranslations;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -31,7 +31,7 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
-     * Slim shared bag for the active panel (branding from DB, menu per panel).
+     * Slim shared bag for the active panel (branding + menu from PanelRegistry).
      *
      * @return array<string, mixed>
      */
@@ -42,20 +42,36 @@ class HandleInertiaRequests extends Middleware
             ?? $this->detectPanelKey($request)
             ?? config('admin.default', 'admin');
 
-        // Ensure helpers (admin_path, admin_menu, …) resolve this panel during share.
         app()->instance('admin.panel', $key);
 
-        $settings = PanelSetting::forPanel($key);
         $showMenu = (bool) $request->user();
+
+        if (! PanelRegistry::has($key)) {
+            return [
+                'key' => $key,
+                'name' => config('admin.name', 'Admin Panel'),
+                'prefix' => admin_prefix($key),
+                'path' => admin_path('', $key),
+                'logo_url' => null,
+                'navbar_title' => null,
+                'show_theme_toggle' => true,
+                'locale' => app()->getLocale(),
+                'language' => admin_language(),
+                'languages' => admin_languages(),
+                'menu' => [],
+            ];
+        }
+
+        $panel = PanelRegistry::get($key);
 
         return [
             'key' => $key,
-            'name' => $settings->app_name,
-            'prefix' => admin_prefix($key),
+            'name' => $panel->getName(),
+            'prefix' => $panel->getPrefix(),
             'path' => admin_path('', $key),
-            'logo_url' => $settings->logo_url,
-            'navbar_title' => $settings->navbar_title,
-            'show_theme_toggle' => (bool) $settings->show_theme_toggle,
+            'logo_url' => $panel->getLogo(),
+            'navbar_title' => $panel->getNavbarTitle(),
+            'show_theme_toggle' => $panel->getShowThemeToggle(),
             'locale' => app()->getLocale(),
             'language' => admin_language(),
             'languages' => admin_languages(),
@@ -67,10 +83,10 @@ class HandleInertiaRequests extends Middleware
     {
         $path = trim($request->path(), '/');
 
-        foreach (config('admin.panels', []) as $key => $config) {
-            $prefix = trim((string) ($config['prefix'] ?? ''), '/');
+        foreach (PanelRegistry::all() as $panel) {
+            $prefix = $panel->getPrefix();
             if ($prefix !== '' && ($path === $prefix || str_starts_with($path, $prefix.'/'))) {
-                return $key;
+                return $panel->getId();
             }
         }
 

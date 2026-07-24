@@ -9,7 +9,6 @@ return [
     'tests' => 'Tests',
     'page_builder_demo' => 'Page builder',
     'settings' => 'Settings',
-    'panel_settings' => 'Panel settings',
     'logout' => 'Log out',
     'search' => 'Search',
     'clear' => 'Clear',

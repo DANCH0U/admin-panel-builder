@@ -27,34 +27,18 @@ const { adminPath } = useAdminConfig();
             </p>
         </div>
 
-        <div class="grid gap-4 md:grid-cols-2">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Tables</CardTitle>
-                    <CardDescription>
-                        Define columns, filters, tabs, and actions in PHP. Render with DataTable.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Button as-child>
-                        <Link :href="adminPath('tests')">Open tests sample</Link>
-                    </Button>
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Settings</CardTitle>
-                    <CardDescription>
-                        Panel branding (name, logo) stored per panel in the database.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Button variant="secondary" as-child>
-                        <Link :href="adminPath('settings')">Open settings</Link>
-                    </Button>
-                </CardContent>
-            </Card>
-        </div>
+        <Card class="max-w-lg">
+            <CardHeader>
+                <CardTitle>Profile</CardTitle>
+                <CardDescription>
+                    Update your account name, email, and password.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Button variant="secondary" as-child>
+                    <Link :href="adminPath('profile')">Open profile</Link>
+                </Button>
+            </CardContent>
+        </Card>
     </div>
 </template>

@@ -16,9 +16,6 @@ defineProps<{
     <Head :title="title || 'Page'" />
 
     <div class="mb-6 space-y-1">
-        <p class="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-            Schema page
-        </p>
         <h1 class="text-3xl font-semibold tracking-tight">{{ title || 'Page' }}</h1>
     </div>
 

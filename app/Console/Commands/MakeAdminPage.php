@@ -2,17 +2,23 @@
 
 namespace App\Console\Commands;
 
+use App\Console\Commands\Concerns\ResolvesAdminPanelOption;
 use Illuminate\Console\GeneratorCommand;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 use Symfony\Component\Console\Input\InputOption;
 
 class MakeAdminPage extends GeneratorCommand
 {
+    use ResolvesAdminPanelOption;
+
     protected $name = 'make:admin-page';
 
-    protected $description = 'Create an AdminPanel schema page and Vue renderer';
+    protected $description = 'Create an AdminPanel schema page (render with Admin/SchemaPage)';
 
     protected $type = 'Admin page';
+
+    protected ?string $panelStudly = null;
 
     protected function getStub()
     {
@@ -21,7 +27,7 @@ class MakeAdminPage extends GeneratorCommand
 
     protected function getDefaultNamespace($rootNamespace)
     {
-        return $rootNamespace.'\AdminPanel\Pages';
+        return $rootNamespace.'\\AdminPanel\\Pages\\'.$this->panelStudly;
     }
 
     protected function qualifyClass($name)
@@ -41,45 +47,42 @@ class MakeAdminPage extends GeneratorCommand
 
     public function handle()
     {
+        try {
+            $panel = $this->resolvePanelOption();
+        } catch (InvalidArgumentException $e) {
+            $this->components->error($e->getMessage());
+
+            return self::FAILURE;
+        }
+
+        $this->panelStudly = $this->panelStudly($panel);
+
         $result = parent::handle();
 
         if ($result === false) {
             return $result;
         }
 
-        $this->writeVuePage();
+        $page = Str::beforeLast(class_basename($this->qualifyClass($this->getNameInput())), 'Page');
+        $pageClass = "{$page}Page";
+        $pageFqcn = "App\\AdminPanel\\Pages\\{$this->panelStudly}\\{$pageClass}";
+        $slug = Str::kebab($page);
+        $panelId = $panel->getId();
+
+        $this->newLine();
+        $this->components->info('Page class created. Use the generic SchemaPage renderer:');
+        $this->line("    return Inertia::render('Admin/SchemaPage', (new \\{$pageFqcn}())->toInertia());");
+        $this->newLine();
+        $this->line("Add a route in <fg=yellow>routes/panels/{$panelId}.php</>:");
+        $this->line("    Route::get('/{$slug}', [YourController::class, 'show'])->name('{$panelId}.{$slug}');");
 
         return self::SUCCESS;
-    }
-
-    protected function writeVuePage(): void
-    {
-        $page = Str::beforeLast(class_basename($this->qualifyClass($this->getNameInput())), 'Page');
-        $directory = resource_path('js/pages/Admin');
-        $path = "{$directory}/{$page}.vue";
-
-        if ($this->files->exists($path) && ! $this->option('force')) {
-            $this->components->warn("Vue page [{$path}] already exists.");
-
-            return;
-        }
-
-        $this->files->ensureDirectoryExists($directory);
-
-        $stubPath = app_path('Console/Commands/Stubs/admin-page.vue.stub');
-        if (! $this->files->exists($stubPath)) {
-            $stubPath = app_path('Console/Commands/Stubs/admin-page-vue.stub');
-        }
-
-        $stub = $this->files->get($stubPath);
-        $stub = str_replace('{{ title }}', Str::headline($page), $stub);
-        $this->files->put($path, $stub);
-        $this->components->info("Vue page [{$path}] created successfully.");
     }
 
     protected function getOptions()
     {
         return [
+            ['panel', null, InputOption::VALUE_REQUIRED, 'Panel id or URL prefix'],
             ['force', 'f', InputOption::VALUE_NONE, 'Overwrite existing files'],
         ];
     }

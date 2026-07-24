@@ -6,48 +6,11 @@ return [
     |--------------------------------------------------------------------------
     | Default panel key
     |--------------------------------------------------------------------------
+    |
+    | Panels are registered in App\Providers\AdminPanelProvider via PanelRegistry.
+    |
     */
     'default' => env('ADMIN_DEFAULT_PANEL', 'admin'),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Panels
-    |--------------------------------------------------------------------------
-    |
-    | Each panel has its own URL prefix, middleware, menu class, and
-    | panel_settings DB row (branding). Add another entry to create a
-    | second panel (e.g. vendor) with its own routes + menu.
-    |
-    */
-    'panels' => [
-
-        'admin' => [
-            'name' => env('ADMIN_NAME', 'Admin Panel'),
-            'prefix' => env('ADMIN_PREFIX', 'admin'),
-            'middleware' => ['auth', 'admin', 'panel:admin'],
-            'menu' => \App\AdminPanel\Menus\AdminMenu::class,
-            'auth' => [
-                'login_route' => 'login',
-                'home' => null,
-            ],
-            'ui' => [
-                'logo_url' => env('ADMIN_LOGO_URL', '/admin-logo.svg'),
-                'navbar_title' => env('ADMIN_NAVBAR_TITLE', 'Admin Panel'),
-                'show_theme_toggle' => true,
-            ],
-        ],
-
-        // Example second panel (uncomment + add routes/middleware to enable):
-        // 'vendor' => [
-        //     'name' => 'Vendor Panel',
-        //     'prefix' => 'vendor',
-        //     'middleware' => ['auth', 'panel:vendor'],
-        //     'menu' => \App\AdminPanel\Menus\VendorMenu::class,
-        //     'auth' => ['login_route' => 'login', 'home' => null],
-        //     'ui' => ['logo_url' => null, 'show_theme_toggle' => true],
-        // ],
-
-    ],
 
     /*
     |--------------------------------------------------------------------------

@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers\{{ controllerNamespace }};
 
 use App\AdminPanel\Engine\DataGridEngine;
 use App\AdminPanel\Notifications\Notify;
-use App\AdminPanel\Resources\{{ resourceClass }};
+use {{ resourceFqcn }};
 {{ formImport }}{{ viewImport }}use {{ modelFqcn }};
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
@@ -16,8 +16,12 @@ class {{ class }} extends Controller
     {
         $data = $engine->handle(new {{ resourceClass }}(), $request);
 
-        return Inertia::render('Admin/{{ vueFolder }}/Index', [
+        return Inertia::render('Admin/ResourceIndex', [
             'resource' => $data,
+            'title' => '{{ title }}',
+            'description' => null,
+            'createUrl' => {{ createUrl }},
+            'createLabel' => {{ createLabel }},
         ]);
     }
 

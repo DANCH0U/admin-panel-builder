@@ -2,17 +2,23 @@
 
 namespace App\Console\Commands;
 
+use App\Console\Commands\Concerns\ResolvesAdminPanelOption;
 use Illuminate\Console\GeneratorCommand;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 use Symfony\Component\Console\Input\InputOption;
 
 class MakeAdminTable extends GeneratorCommand
 {
+    use ResolvesAdminPanelOption;
+
     protected $name = 'make:admin-table';
 
-    protected $description = 'Create an AdminPanel table resource (and optional Vue index page)';
+    protected $description = 'Create an AdminPanel table resource (renders via Admin/ResourceIndex)';
 
     protected $type = 'Admin table';
+
+    protected ?string $panelStudly = null;
 
     protected function getStub()
     {
@@ -21,7 +27,7 @@ class MakeAdminTable extends GeneratorCommand
 
     protected function getDefaultNamespace($rootNamespace)
     {
-        return $rootNamespace.'\AdminPanel\Resources';
+        return $rootNamespace.'\\AdminPanel\\Resources\\'.$this->panelStudly;
     }
 
     protected function qualifyClass($name)
@@ -39,7 +45,7 @@ class MakeAdminTable extends GeneratorCommand
         $modelOption = $this->option('model');
         $model = ltrim($modelOption ?: "App\\Models\\{$resource}", '\\');
 
-        if (!str_contains($model, '\\')) {
+        if (! str_contains($model, '\\')) {
             $model = "App\\Models\\{$model}";
         }
 
@@ -61,49 +67,44 @@ class MakeAdminTable extends GeneratorCommand
 
     public function handle()
     {
+        try {
+            $panel = $this->resolvePanelOption();
+        } catch (InvalidArgumentException $e) {
+            $this->components->error($e->getMessage());
+
+            return self::FAILURE;
+        }
+
+        $this->panelStudly = $this->panelStudly($panel);
+
         $result = parent::handle();
 
         if ($result === false) {
             return $result;
         }
 
-        if ($this->option('page')) {
-            $this->writeIndexPage();
-        }
+        $class = class_basename($this->qualifyClass($this->getNameInput()));
+        $resource = Str::beforeLast($class, 'Resource');
+        $key = Str::plural(Str::kebab($resource));
+        $panelId = $panel->getId();
+        $title = Str::headline(Str::plural($resource));
+        $controllerFqcn = "App\\Http\\Controllers\\{$this->panelStudly}\\{$resource}Controller";
+
+        $this->newLine();
+        $this->line("Render index with <fg=yellow>Admin/ResourceIndex</> and add routes to <fg=yellow>routes/panels/{$panelId}.php</>:");
+        $this->line("    Route::resource('{$key}', \\{$controllerFqcn}::class)->only(['index', 'destroy']);");
+        $menuHint = $panel->getMenu() ?? 'your panel menu class';
+        $this->line("Optional menu item in <fg=yellow>{$menuHint}</>:");
+        $this->line("    MenuItem::link('{$key}', admin_path('{$key}', '{$panelId}'))->icon('heroicons:rectangle-stack')->title('{$title}'),");
 
         return self::SUCCESS;
-    }
-
-    protected function writeIndexPage(): void
-    {
-        $resource = Str::beforeLast(class_basename($this->qualifyClass($this->getNameInput())), 'Resource');
-        $directory = resource_path('js/pages/Admin/'.Str::pluralStudly($resource));
-        $path = "{$directory}/Index.vue";
-
-        if ($this->files->exists($path) && ! $this->option('force')) {
-            $this->components->warn("Vue page [{$path}] already exists.");
-
-            return;
-        }
-
-        $this->files->ensureDirectoryExists($directory);
-
-        $stubPath = app_path('Console/Commands/Stubs/admin-table-page.vue.stub');
-        if (! $this->files->exists($stubPath)) {
-            $stubPath = app_path('Console/Commands/Stubs/admin-table-page.stub');
-        }
-
-        $stub = $this->files->get($stubPath);
-        $stub = str_replace('{{ title }}', Str::headline(Str::plural($resource)), $stub);
-        $this->files->put($path, $stub);
-        $this->components->info("Vue page [{$path}] created successfully.");
     }
 
     protected function getOptions()
     {
         return [
+            ['panel', null, InputOption::VALUE_REQUIRED, 'Panel id or URL prefix'],
             ['model', 'm', InputOption::VALUE_OPTIONAL, 'The Eloquent model class basename or FQCN'],
-            ['page', null, InputOption::VALUE_NONE, 'Also create an Admin Vue index page'],
             ['force', 'f', InputOption::VALUE_NONE, 'Overwrite existing files'],
         ];
     }

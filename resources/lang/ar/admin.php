@@ -8,7 +8,6 @@ return [
     'tests' => 'الاختبارات',
     'page_builder_demo' => 'منشئ الصفحات',
     'settings' => 'الإعدادات',
-    'panel_settings' => 'إعدادات اللوحة',
     'logout' => 'تسجيل الخروج',
     'search' => 'بحث',
     'clear' => 'مسح',

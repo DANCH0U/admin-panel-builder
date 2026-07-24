@@ -1,5 +1,7 @@
 <?php
 
+use App\AdminPanel\Panel;
+use App\AdminPanel\PanelRegistry;
 use Illuminate\Support\Str;
 
 if (! function_exists('admin_panel')) {
@@ -16,15 +18,26 @@ if (! function_exists('admin_panel')) {
     }
 }
 
+if (! function_exists('admin_panel_instance')) {
+    function admin_panel_instance(?string $panel = null): Panel
+    {
+        $panel ??= admin_panel();
+
+        return PanelRegistry::get($panel);
+    }
+}
+
 if (! function_exists('admin_panel_config')) {
     /**
      * @return array<string, mixed>
      */
     function admin_panel_config(?string $panel = null): array
     {
-        $panel ??= admin_panel();
-
-        return (array) config("admin.panels.{$panel}", []);
+        try {
+            return admin_panel_instance($panel)->toConfig();
+        } catch (Throwable) {
+            return [];
+        }
     }
 }
 
@@ -34,10 +47,11 @@ if (! function_exists('admin_prefix')) {
      */
     function admin_prefix(?string $panel = null): string
     {
-        $config = admin_panel_config($panel);
-        $prefix = $config['prefix'] ?? config('admin.prefix', 'admin');
-
-        return trim((string) $prefix, '/');
+        try {
+            return admin_panel_instance($panel)->getPrefix();
+        } catch (Throwable) {
+            return trim((string) config('admin.prefix', 'admin'), '/');
+        }
     }
 }
 
@@ -70,8 +84,11 @@ if (! function_exists('admin_home')) {
      */
     function admin_home(?string $panel = null): string
     {
-        $config = admin_panel_config($panel);
-        $configured = $config['auth']['home'] ?? null;
+        try {
+            $configured = admin_panel_instance($panel)->getHome();
+        } catch (Throwable) {
+            $configured = null;
+        }
 
         if (is_string($configured) && $configured !== '') {
             return Str::startsWith($configured, '/') ? $configured : admin_path($configured, $panel);
@@ -89,24 +106,17 @@ if (! function_exists('admin_menu')) {
      */
     function admin_menu(?string $panel = null): array
     {
-        $config = admin_panel_config($panel);
-        $menuClass = $config['menu'] ?? null;
+        try {
+            $menuClass = admin_panel_instance($panel)->getMenu();
+        } catch (Throwable) {
+            return [];
+        }
 
         if (is_string($menuClass) && class_exists($menuClass) && method_exists($menuClass, 'build')) {
             return $menuClass::build();
         }
 
         return [];
-    }
-}
-
-if (! function_exists('admin_settings')) {
-    /**
-     * Panel-scoped settings row from the database.
-     */
-    function admin_settings(?string $panel = null): \App\Models\PanelSetting
-    {
-        return \App\Models\PanelSetting::forPanel($panel);
     }
 }
 

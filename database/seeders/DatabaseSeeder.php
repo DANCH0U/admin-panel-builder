@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\PanelSetting;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -20,11 +19,5 @@ class DatabaseSeeder extends Seeder
                 'is_admin' => true,
             ],
         );
-
-        foreach (array_keys(config('admin.panels', [])) as $panel) {
-            PanelSetting::forPanel($panel);
-        }
-
-        $this->call(TestSeeder::class);
     }
 }

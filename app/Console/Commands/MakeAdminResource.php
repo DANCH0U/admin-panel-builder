@@ -2,20 +2,25 @@
 
 namespace App\Console\Commands;
 
+use App\Console\Commands\Concerns\ResolvesAdminPanelOption;
 use Illuminate\Console\Command;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 
 class MakeAdminResource extends Command
 {
+    use ResolvesAdminPanelOption;
+
     protected $signature = 'make:admin-resource
         {name : Resource name, e.g. Post or PostResource}
+        {--panel= : Panel id or URL prefix (required)}
         {--model= : Eloquent model basename or FQCN}
         {--form : Generate form page + create/edit controller methods}
         {--view : Generate view page + show controller method}
         {--force : Overwrite existing files}';
 
-    protected $description = 'Generate an AdminPanel resource, controller, Vue index, and optional form/view pages';
+    protected $description = 'Generate an AdminPanel resource, controller, and optional form/view pages';
 
     public function __construct(protected Filesystem $files)
     {
@@ -24,6 +29,14 @@ class MakeAdminResource extends Command
 
     public function handle(): int
     {
+        try {
+            $panel = $this->resolvePanelOption();
+        } catch (InvalidArgumentException $e) {
+            $this->components->error($e->getMessage());
+
+            return self::FAILURE;
+        }
+
         $raw = $this->argument('name');
         $resource = Str::studly(Str::beforeLast(Str::studly($raw), 'Resource') ?: Str::studly($raw));
         $resourceClass = "{$resource}Resource";
@@ -36,15 +49,23 @@ class MakeAdminResource extends Command
             : "App\\Models\\{$modelClass}";
         $modelVar = lcfirst($modelClass);
         $key = Str::plural(Str::kebab($modelClass));
-        $vueFolder = Str::pluralStudly($resource);
         $title = Str::headline(Str::plural($resource));
         $titleSingular = Str::headline($resource);
         $titleLower = Str::lower($title);
         $withForm = (bool) $this->option('form');
         $withView = (bool) $this->option('view');
+        $panelId = $panel->getId();
+        $panelStudly = $this->panelStudly($panel);
+
+        $resourceNs = "App\\AdminPanel\\Resources\\{$panelStudly}";
+        $pagesNs = "App\\AdminPanel\\Pages\\{$panelStudly}";
+        $controllerNs = "App\\Http\\Controllers\\{$panelStudly}";
 
         $replacements = [
-            '{{ namespace }}' => 'App\\AdminPanel\\Resources',
+            '{{ namespace }}' => $resourceNs,
+            '{{ pagesNamespace }}' => $pagesNs,
+            '{{ controllerNamespace }}' => $panelStudly,
+            '{{ resourceFqcn }}' => "{$resourceNs}\\{$resourceClass}",
             '{{ class }}' => $resourceClass,
             '{{ resourceClass }}' => $resourceClass,
             '{{ modelFqcn }}' => $modelFqcn,
@@ -54,18 +75,19 @@ class MakeAdminResource extends Command
             '{{ title }}' => $title,
             '{{ titleSingular }}' => $titleSingular,
             '{{ titleLower }}' => $titleLower,
-            '{{ vueFolder }}' => $vueFolder,
+            '{{ createUrl }}' => $withForm ? "admin_path('{$key}/create')" : 'null',
+            '{{ createLabel }}' => $withForm ? "'Add {$titleSingular}'" : 'null',
         ];
 
-        $this->writeResource($resourceClass, $replacements, $withForm, $withView);
-        $this->writeController($resource, $modelClass, $replacements, $withForm, $withView);
-        $this->writeIndexVue($vueFolder, $replacements);
+        $this->writeResource($panelStudly, $resourceClass, $replacements, $withForm, $withView);
+        $this->writeController($panelStudly, $resource, $modelClass, $replacements, $withForm, $withView, $pagesNs);
 
         if ($withForm) {
             $this->writeFromStub(
-                app_path("AdminPanel/Pages/{$resource}FormPage.php"),
+                app_path("AdminPanel/Pages/{$panelStudly}/{$resource}FormPage.php"),
                 'admin-form-page.stub',
                 array_merge($replacements, [
+                    '{{ namespace }}' => $pagesNs,
                     '{{ class }}' => "{$resource}FormPage",
                 ]),
             );
@@ -73,9 +95,10 @@ class MakeAdminResource extends Command
 
         if ($withView) {
             $this->writeFromStub(
-                app_path("AdminPanel/Pages/{$resource}ViewPage.php"),
+                app_path("AdminPanel/Pages/{$panelStudly}/{$resource}ViewPage.php"),
                 'admin-view-page.stub',
                 array_merge($replacements, [
+                    '{{ namespace }}' => $pagesNs,
                     '{{ class }}' => "{$resource}ViewPage",
                 ]),
             );
@@ -84,21 +107,27 @@ class MakeAdminResource extends Command
         $this->newLine();
         $this->components->info('Admin resource scaffolded.');
         $this->warn('Note: this command does not generate models or migrations — create those separately.');
-        $this->line('Add routes to <fg=yellow>routes/admin.php</>:');
+        $this->line("Add routes to <fg=yellow>routes/panels/{$panelId}.php</>:");
         $this->newLine();
-        $this->line("    Route::post('/{$key}/bulk', [\\App\\Http\\Controllers\\Admin\\{$resource}Controller::class, 'bulk'])");
+        $this->line("    Route::post('/{$key}/bulk', [\\{$controllerNs}\\{$resource}Controller::class, 'bulk'])");
         $this->line("        ->name('{$key}.bulk');");
-        $this->line("    Route::resource('{$key}', \\App\\Http\\Controllers\\Admin\\{$resource}Controller::class)" .
+        $this->line("    Route::resource('{$key}', \\{$controllerNs}\\{$resource}Controller::class)" .
             ($withForm || $withView ? ';' : "->only(['index', 'destroy']);"));
         $this->newLine();
-        $this->line('Optional menu item in your panel menu class (e.g. AdminMenu):');
-        $this->line("    MenuItem::link('{$key}', admin_path('{$key}'))->icon('heroicons:rectangle-stack')->title('{$title}'),");
+        $menuHint = $panel->getMenu() ?? 'your panel menu class';
+        $this->line("Optional menu item in <fg=yellow>{$menuHint}</>:");
+        $this->line("    MenuItem::link('{$key}', admin_path('{$key}', '{$panelId}'))->icon('heroicons:rectangle-stack')->title('{$title}'),");
 
         return self::SUCCESS;
     }
 
-    protected function writeResource(string $resourceClass, array $base, bool $withForm, bool $withView): void
-    {
+    protected function writeResource(
+        string $panelStudly,
+        string $resourceClass,
+        array $base,
+        bool $withForm,
+        bool $withView,
+    ): void {
         $actions = [];
 
         if ($withView) {
@@ -124,7 +153,7 @@ PHP;
 PHP;
 
         $this->writeFromStub(
-            app_path("AdminPanel/Resources/{$resourceClass}.php"),
+            app_path("AdminPanel/Resources/{$panelStudly}/{$resourceClass}.php"),
             'admin-resource.stub',
             array_merge($base, [
                 '{{ actions }}' => implode("\n", $actions),
@@ -133,17 +162,19 @@ PHP;
     }
 
     protected function writeController(
+        string $panelStudly,
         string $resource,
         string $modelClass,
         array $base,
         bool $withForm,
         bool $withView,
+        string $pagesNs,
     ): void {
         $formImport = $withForm
-            ? "use App\\AdminPanel\\Pages\\{$resource}FormPage;\n"
+            ? "use {$pagesNs}\\{$resource}FormPage;\n"
             : '';
         $viewImport = $withView
-            ? "use App\\AdminPanel\\Pages\\{$resource}ViewPage;\n"
+            ? "use {$pagesNs}\\{$resource}ViewPage;\n"
             : '';
 
         $formMethods = '';
@@ -236,7 +267,7 @@ PHP;
         }
 
         $this->writeFromStub(
-            app_path("Http/Controllers/Admin/{$resource}Controller.php"),
+            app_path("Http/Controllers/{$panelStudly}/{$resource}Controller.php"),
             'admin-controller.stub',
             array_merge($base, [
                 '{{ class }}' => "{$resource}Controller",
@@ -245,17 +276,6 @@ PHP;
                 '{{ formMethods }}' => $formMethods,
                 '{{ viewMethods }}' => $viewMethods,
             ]),
-        );
-    }
-
-    protected function writeIndexVue(string $vueFolder, array $base): void
-    {
-        $dir = resource_path("js/pages/Admin/{$vueFolder}");
-        $this->files->ensureDirectoryExists($dir);
-        $this->writeFromStub(
-            "{$dir}/Index.vue",
-            'admin-index.vue.stub',
-            $base,
         );
     }
 
@@ -270,7 +290,6 @@ PHP;
         $this->files->ensureDirectoryExists(dirname($path));
         $contents = $this->files->get(app_path("Console/Commands/Stubs/{$stub}"));
         $contents = str_replace(array_keys($replace), array_values($replace), $contents);
-        // Second pass for nested placeholders inside action snippets
         $contents = str_replace(array_keys($replace), array_values($replace), $contents);
         $this->files->put($path, $contents);
         $this->components->info("Created: {$path}");

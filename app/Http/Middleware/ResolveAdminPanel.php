@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\AdminPanel\PanelRegistry;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -18,10 +19,9 @@ class ResolveAdminPanel
      */
     public function handle(Request $request, Closure $next, ?string $panel = null): Response
     {
-        $key = $panel ?: $this->detectFromRequest($request) ?: config('admin.default', 'admin');
-        $panels = config('admin.panels', []);
+        $key = $panel ?: $this->detectFromRequest($request)?->getId() ?: config('admin.default', 'admin');
 
-        if (!isset($panels[$key])) {
+        if (! PanelRegistry::has($key)) {
             abort(404, "Unknown admin panel [{$key}].");
         }
 
@@ -31,17 +31,17 @@ class ResolveAdminPanel
         return $next($request);
     }
 
-    protected function detectFromRequest(Request $request): ?string
+    protected function detectFromRequest(Request $request): ?\App\AdminPanel\Panel
     {
         $path = trim($request->path(), '/');
 
-        foreach (config('admin.panels', []) as $key => $config) {
-            $prefix = trim((string) ($config['prefix'] ?? $key), '/');
+        foreach (PanelRegistry::all() as $panel) {
+            $prefix = $panel->getPrefix();
             if ($prefix === '') {
                 continue;
             }
             if ($path === $prefix || str_starts_with($path, $prefix.'/')) {
-                return $key;
+                return $panel;
             }
         }
 
