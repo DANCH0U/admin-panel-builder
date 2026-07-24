@@ -26,6 +26,7 @@ class User extends Authenticatable
         'email',
         'password',
         'is_admin',
+        'default_panel',
     ];
 
     /**
@@ -34,6 +35,16 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return (bool) $this->is_admin;
+    }
+
+    /**
+     * Panel prefix (or id) this user lands on after login.
+     */
+    public function defaultPanel(): ?string
+    {
+        $value = $this->default_panel;
+
+        return is_string($value) && $value !== '' ? $value : null;
     }
 
     /**

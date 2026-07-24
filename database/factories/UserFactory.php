@@ -27,6 +27,7 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'is_admin' => false,
+            'default_panel' => null,
             'remember_token' => Str::random(10),
             'two_factor_secret' => null,
             'two_factor_recovery_codes' => null,
@@ -38,6 +39,14 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'is_admin' => true,
+            'default_panel' => 'admin',
+        ]);
+    }
+
+    public function panel(string $prefix): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'default_panel' => $prefix,
         ]);
     }
 

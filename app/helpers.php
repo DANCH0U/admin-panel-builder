@@ -80,7 +80,7 @@ if (! function_exists('admin_url')) {
 
 if (! function_exists('admin_home')) {
     /**
-     * Path admins land on after login for the current panel.
+     * Path admins land on after login for the current (or given) panel.
      */
     function admin_home(?string $panel = null): string
     {
@@ -95,6 +95,39 @@ if (! function_exists('admin_home')) {
         }
 
         return admin_path('', $panel);
+    }
+}
+
+if (! function_exists('admin_home_for')) {
+    /**
+     * Home path for a user based on users.default_panel (prefix or panel id).
+     * Falls back to the registry default panel when missing/unknown.
+     */
+    function admin_home_for(?\Illuminate\Contracts\Auth\Authenticatable $user = null): string
+    {
+        $user ??= auth()->user();
+        $needle = null;
+
+        if ($user && method_exists($user, 'defaultPanel')) {
+            $needle = $user->defaultPanel();
+        } elseif ($user && isset($user->default_panel)) {
+            $value = $user->default_panel;
+            $needle = is_string($value) && $value !== '' ? $value : null;
+        }
+
+        if ($needle) {
+            try {
+                return admin_home(PanelRegistry::resolve($needle)->getId());
+            } catch (Throwable) {
+                // fall through
+            }
+        }
+
+        try {
+            return admin_home(PanelRegistry::default()->getId());
+        } catch (Throwable) {
+            return admin_home();
+        }
     }
 }
 

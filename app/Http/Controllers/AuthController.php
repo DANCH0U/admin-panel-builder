@@ -42,7 +42,7 @@ class AuthController extends Controller
             ]);
         }
 
-        return redirect()->intended(admin_home());
+        return redirect()->intended(admin_home_for($user));
     }
 
     public function destroy(Request $request)

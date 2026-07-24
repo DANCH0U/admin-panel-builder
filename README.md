@@ -97,6 +97,7 @@ These helpers always target the **current panel** (set by the `panel:{id}` middl
 | `admin_path('posts')` | `admin_path('posts')` | `"/admin/posts"` |
 | `admin_url('posts')` | `admin_url('posts')` | full URL under that prefix |
 | `admin_home()` | `admin_home()` | panel home, e.g. `"/admin"` |
+| `admin_home_for($user)` | `admin_home_for()` | home for `user.default_panel` (login redirect) |
 | `admin_menu()` | `admin_menu()` | sidebar items for the current panel |
 
 Force another panel with the optional second argument:
@@ -108,6 +109,32 @@ admin_path('posts', 'vendor'); // "/vendor/posts"
 Outside a panel request (login, artisan, etc.), helpers fall back to `config('admin.default')` (usually `admin`).
 
 Use them everywhere you need a panel URL — menu links, form actions, DataGrid actions, redirects — so the same code works if you rename the prefix or run under another panel.
+
+### Default panel (login redirect)
+
+Each user can store a **default panel prefix** (or panel id) in `users.default_panel`. After login, they are redirected to that panel’s home.
+
+```php
+// users.default_panel = "admin"  → /admin
+// users.default_panel = "vendor" → /vendor
+$user->default_panel = 'vendor';
+$user->save();
+```
+
+The seeded admin uses `default_panel = admin`:
+
+```php
+User::updateOrCreate(
+    ['email' => 'admin@example.com'],
+    [
+        // …
+        'is_admin' => true,
+        'default_panel' => 'admin',
+    ],
+);
+```
+
+Login uses `admin_home_for($user)` (resolves prefix/id via `PanelRegistry`, then `admin_home()`). If the value is missing or unknown, it falls back to the registry default panel.
 
 ---
 
