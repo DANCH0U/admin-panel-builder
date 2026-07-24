@@ -61,7 +61,7 @@ $this
     ->showThemeToggle(true);
 ```
 
-Open [http://127.0.0.1:8000/admin](http://127.0.0.1:8000/login) and sign in.
+Open [http://127.0.0.1:8000/login](http://127.0.0.1:8000/login) and sign in.
 
 ### Extra panels
 
