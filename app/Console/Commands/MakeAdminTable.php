@@ -93,8 +93,8 @@ class MakeAdminTable extends GeneratorCommand
         $this->newLine();
         $this->line("Render index with <fg=yellow>Admin/ResourceIndex</> and add routes to <fg=yellow>routes/panels/{$panelId}.php</>:");
         $this->line("    Route::resource('{$key}', \\{$controllerFqcn}::class)->only(['index', 'destroy']);");
-        $menuHint = $panel->getMenu() ?? 'your panel menu class';
-        $this->line("Optional menu item in <fg=yellow>{$menuHint}</>:");
+        $menuHint = $panel::class;
+        $this->line("Optional menu item in <fg=yellow>{$menuHint}::menu()</>:");
         $this->line("    MenuItem::link('{$key}', admin_path('{$key}', '{$panelId}'))->icon('heroicons:rectangle-stack')->title('{$title}'),");
 
         return self::SUCCESS;

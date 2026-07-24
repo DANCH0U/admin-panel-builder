@@ -2,25 +2,26 @@
 
 namespace App\Providers;
 
-use App\AdminPanel\Menus\AdminMenu;
-use App\AdminPanel\Panel;
 use App\AdminPanel\PanelRegistry;
+use App\AdminPanel\Panels\AdminPanel;
 use Illuminate\Support\ServiceProvider;
 
 class AdminPanelProvider extends ServiceProvider
 {
+    /**
+     * Panel classes under App\AdminPanel\Panels (settings + menu).
+     *
+     * @var list<class-string<\App\AdminPanel\Panel>>
+     */
+    protected array $panels = [
+        AdminPanel::class,
+    ];
+
     public function register(): void
     {
-        PanelRegistry::register('admin', function (Panel $panel) {
-            $panel
-                ->prefix(env('ADMIN_PREFIX', 'admin'))
-                ->middleware(['auth', 'admin', 'panel:admin'])
-                ->name(env('ADMIN_NAME', 'Admin Panel'))
-                ->logo(env('ADMIN_LOGO_URL', '/admin-logo.svg'))
-                ->navbarTitle(env('ADMIN_NAVBAR_TITLE', 'Admin Panel'))
-                ->showThemeToggle(true)
-                ->menu(AdminMenu::class);
-        });
+        foreach ($this->panels as $panel) {
+            PanelRegistry::register($panel);
+        }
     }
 
     public function boot(): void

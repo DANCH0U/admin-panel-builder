@@ -12,9 +12,9 @@ class MakeAdminPanel extends Command
     protected $signature = 'make:admin-panel
         {name : Panel key, e.g. vendor or Vendor}
         {--prefix= : URL prefix (defaults to panel key)}
-        {--force : Overwrite existing menu / route files}';
+        {--force : Overwrite existing panel / route files}';
 
-    protected $description = 'Scaffold a new admin panel (menu class, routes file, provider registration snippet)';
+    protected $description = 'Scaffold a panel class (settings + menu) under AdminPanel/Panels and register it';
 
     public function __construct(protected Filesystem $files)
     {
@@ -25,10 +25,12 @@ class MakeAdminPanel extends Command
     {
         $raw = (string) $this->argument('name');
         $key = Str::kebab(Str::snake($raw));
-        $studly = Str::studly(str_replace('-', '_', $key));
+        $studly = Str::studly(str_replace(['-', '_'], ' ', $key));
+        $studly = Str::beforeLast($studly, 'Panel') ?: $studly;
+        $class = "{$studly}Panel";
+        $fqcn = "App\\AdminPanel\\Panels\\{$class}";
         $prefix = trim((string) ($this->option('prefix') ?: $key), '/');
-        $menuClass = "{$studly}Menu";
-        $menuFqcn = "App\\AdminPanel\\Menus\\{$menuClass}";
+        $title = Str::headline($studly).' Panel';
 
         if (PanelRegistry::has($key) && ! $this->option('force')) {
             $this->components->error("Panel [{$key}] is already registered.");
@@ -36,16 +38,22 @@ class MakeAdminPanel extends Command
             return self::FAILURE;
         }
 
-        $this->writeMenu($menuClass, $studly, $key);
-        $this->writeRoutes($key);
-        $this->printProviderSnippet($key, $prefix, $menuFqcn);
+        $this->writePanelClass($class, $key, $prefix, $title);
+        $this->writeRoutes($key, $title);
+        $this->registerInProvider($fqcn, $class);
+
+        $this->newLine();
+        $this->components->info("Panel [{$key}] ready.");
+        $this->line("Class: <fg=yellow>{$fqcn}</>");
+        $this->line("Routes: <fg=yellow>routes/panels/{$key}.php</>");
+        $this->line('Edit menu() on the panel class to add sidebar items.');
 
         return self::SUCCESS;
     }
 
-    protected function writeMenu(string $menuClass, string $studly, string $key): void
+    protected function writePanelClass(string $class, string $key, string $prefix, string $title): void
     {
-        $path = app_path("AdminPanel/Menus/{$menuClass}.php");
+        $path = app_path("AdminPanel/Panels/{$class}.php");
 
         if ($this->files->exists($path) && ! $this->option('force')) {
             $this->components->warn("Skipped (exists): {$path}");
@@ -53,10 +61,10 @@ class MakeAdminPanel extends Command
             return;
         }
 
-        $stub = $this->files->get(app_path('Console/Commands/Stubs/admin-panel-menu.stub'));
+        $stub = $this->files->get(app_path('Console/Commands/Stubs/admin-panel.stub'));
         $stub = str_replace(
-            ['{{ class }}', '{{ panel }}', '{{ title }}'],
-            [$menuClass, $key, Str::headline($studly)],
+            ['{{ class }}', '{{ id }}', '{{ prefix }}', '{{ title }}'],
+            [$class, $key, $prefix, $title],
             $stub,
         );
 
@@ -65,7 +73,7 @@ class MakeAdminPanel extends Command
         $this->components->info("Created: {$path}");
     }
 
-    protected function writeRoutes(string $key): void
+    protected function writeRoutes(string $key, string $title): void
     {
         $path = base_path("routes/panels/{$key}.php");
 
@@ -76,37 +84,51 @@ class MakeAdminPanel extends Command
         }
 
         $stub = $this->files->get(app_path('Console/Commands/Stubs/admin-panel-routes.stub'));
-        $stub = str_replace(['{{ panel }}', '{{ title }}'], [$key, Str::headline($key)], $stub);
+        $stub = str_replace(['{{ panel }}', '{{ title }}'], [$key, $title], $stub);
 
         $this->files->ensureDirectoryExists(dirname($path));
         $this->files->put($path, $stub);
         $this->components->info("Created: {$path}");
     }
 
-    protected function printProviderSnippet(string $key, string $prefix, string $menuFqcn): void
+    protected function registerInProvider(string $fqcn, string $class): void
     {
-        $title = $this->headline($key);
+        $path = app_path('Providers/AdminPanelProvider.php');
+        $contents = $this->files->get($path);
 
-        $this->newLine();
-        $this->components->info('Add this registration to App\\Providers\\AdminPanelProvider::register():');
-        $this->newLine();
-        $this->line(<<<PHP
-PanelRegistry::register('{$key}', function (Panel \$panel) {
-    \$panel
-        ->prefix('{$prefix}')
-        ->middleware(['auth', 'panel:{$key}'])
-        ->name('{$title}')
-        ->logo(null)
-        ->navbarTitle('{$title}')
-        ->menu(\\{$menuFqcn}::class);
-});
-PHP);
-        $this->newLine();
-        $this->line("Then add routes under <fg=yellow>routes/panels/{$key}.php</>.");
-    }
+        if (str_contains($contents, $fqcn) || str_contains($contents, "{$class}::class")) {
+            $this->components->warn('Provider already lists this panel class.');
 
-    protected function headline(string $key): string
-    {
-        return Str::headline($key).' Panel';
+            return;
+        }
+
+        $useLine = "use {$fqcn};";
+        if (! str_contains($contents, $useLine)) {
+            $contents = preg_replace(
+                '/(use App\\\\AdminPanel\\\\PanelRegistry;)/',
+                "$1\n{$useLine}",
+                $contents,
+                1,
+            ) ?? $contents;
+        }
+
+        if (preg_match('/protected array \$panels = \[([^\]]*)\];/s', $contents, $matches)) {
+            $inner = rtrim($matches[1]);
+            $entry = "        {$class}::class,";
+            if (! str_ends_with(trim($inner), ',')) {
+                $inner = rtrim($inner).",\n";
+            } elseif ($inner !== '' && ! str_ends_with($inner, "\n")) {
+                $inner .= "\n";
+            }
+            $inner .= $entry."\n    ";
+            $contents = str_replace($matches[0], "protected array \$panels = [{$inner}];", $contents);
+            $this->files->put($path, $contents);
+            $this->components->info('Registered in AdminPanelProvider::$panels.');
+
+            return;
+        }
+
+        $this->components->warn('Could not update AdminPanelProvider automatically. Add:');
+        $this->line("    {$class}::class,");
     }
 }

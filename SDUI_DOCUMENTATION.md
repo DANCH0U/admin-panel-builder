@@ -184,7 +184,7 @@ The grid engine does not apply tenant constraints automatically. Multi-tenancy o
 
 ## Configuration
 
-Shared settings (languages, uploads, table defaults) live in `config/admin.php`. Panel branding, prefix, and middleware are registered in `App\Providers\AdminPanelProvider` via `PanelRegistry`.
+Shared settings (languages, uploads, table defaults) live in `config/admin.php`. Panels are classes under `App\AdminPanel\Panels` (settings + `menu()`), registered by looping `AdminPanelProvider::$panels`.
 
 ```env
 ADMIN_NAME="Admin Panel"

@@ -19,6 +19,11 @@ class {{ class }} extends BasePage
         return $this->{{ modelVar }}->name ?? '{{ titleSingular }}';
     }
 
+    public function authorize(): bool
+    {
+        return true;
+    }
+
     public function schema(): array
     {
         $record = $this->{{ modelVar }};

@@ -21,6 +21,11 @@ class ProfilePage extends BasePage
         return 'Profile';
     }
 
+    public function authorize(): bool
+    {
+        return true;
+    }
+
     public function schema(): array
     {
         return [

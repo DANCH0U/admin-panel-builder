@@ -7,7 +7,7 @@ return [
     | Default panel key
     |--------------------------------------------------------------------------
     |
-    | Panels are registered in App\Providers\AdminPanelProvider via PanelRegistry.
+    | Panels are classes under App\AdminPanel\Panels, registered in AdminPanelProvider.
     |
     */
     'default' => env('ADMIN_DEFAULT_PANEL', 'admin'),

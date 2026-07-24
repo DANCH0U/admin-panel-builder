@@ -1,0 +1,35 @@
+<?php
+
+namespace App\AdminPanel\Panels;
+
+use App\AdminPanel\Menu\MenuItem;
+use App\AdminPanel\Menu\PanelMenu;
+use App\AdminPanel\Panel;
+
+class {{ class }} extends Panel
+{
+    public function __construct()
+    {
+        parent::__construct('{{ id }}');
+
+        $this
+            ->prefix('{{ prefix }}')
+            ->middleware(['auth', 'panel:{{ id }}'])
+            ->name('{{ title }}')
+            ->logo(null)
+            ->navbarTitle('{{ title }}')
+            ->showThemeToggle(true);
+    }
+
+    public function menu(): array
+    {
+        return PanelMenu::make()
+            ->default()
+            // ->section('main', [
+            //     MenuItem::link('items', admin_path('items'))
+            //         ->icon('heroicons:rectangle-stack')
+            //         ->title('Items'),
+            // ])
+            ->build();
+    }
+}

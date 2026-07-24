@@ -2,7 +2,6 @@
 
 namespace App\AdminPanel;
 
-use Closure;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -12,13 +11,19 @@ class PanelRegistry
     protected static array $panels = [];
 
     /**
-     * @param  Closure(Panel): void  $configure
+     * @param  class-string<Panel>|Panel  $panel
      */
-    public static function register(string $id, Closure $configure): Panel
+    public static function register(string|Panel $panel): Panel
     {
-        $panel = new Panel($id);
-        $configure($panel);
-        static::$panels[$id] = $panel;
+        if (is_string($panel)) {
+            if (! is_subclass_of($panel, Panel::class)) {
+                throw new InvalidArgumentException("[{$panel}] must extend ".Panel::class.'.');
+            }
+
+            $panel = new $panel;
+        }
+
+        static::$panels[$panel->getId()] = $panel;
 
         return $panel;
     }

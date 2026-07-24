@@ -25,6 +25,8 @@ class ProfileController extends Controller
 
     public function update(Request $request)
     {
+        (new ProfilePage($request->user()))->authorizeOrFail();
+
         $user = $request->user();
 
         $validated = $request->validate([

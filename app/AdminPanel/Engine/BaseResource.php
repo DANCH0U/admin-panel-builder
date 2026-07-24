@@ -19,9 +19,21 @@ abstract class BaseResource
 
     abstract public function schema(): array;
 
+    /**
+     * Return false to block access (403). Override in generated resources.
+     */
     public function authorize(): bool
     {
         return true;
+    }
+
+    public function authorizeOrFail(): static
+    {
+        if (! $this->authorize()) {
+            abort(403, 'Unauthorized');
+        }
+
+        return $this;
     }
 
     public function getModel(): Model

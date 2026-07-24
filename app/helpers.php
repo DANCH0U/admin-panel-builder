@@ -107,16 +107,10 @@ if (! function_exists('admin_menu')) {
     function admin_menu(?string $panel = null): array
     {
         try {
-            $menuClass = admin_panel_instance($panel)->getMenu();
+            return admin_panel_instance($panel)->menu();
         } catch (Throwable) {
             return [];
         }
-
-        if (is_string($menuClass) && class_exists($menuClass) && method_exists($menuClass, 'build')) {
-            return $menuClass::build();
-        }
-
-        return [];
     }
 }
 

@@ -16,6 +16,11 @@ class {{ class }} extends BasePage
         return '{{ title }}';
     }
 
+    public function authorize(): bool
+    {
+        return true;
+    }
+
     public function schema(): array
     {
         return [

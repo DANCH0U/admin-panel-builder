@@ -69,9 +69,7 @@ class DataGridEngine
 
     public function handle(BaseResource $resource, Request $request): array|\Symfony\Component\HttpFoundation\StreamedResponse
     {
-        if (!$resource->authorize()) {
-            abort(403, 'Unauthorized');
-        }
+        $resource->authorizeOrFail();
 
         $schema = $resource->schema();
         $model = $resource->getModel();
@@ -152,9 +150,7 @@ class DataGridEngine
 
     public function runBulkAction(BaseResource $resource, Request $request): \Illuminate\Http\RedirectResponse
     {
-        if (!$resource->authorize()) {
-            abort(403, 'Unauthorized');
-        }
+        $resource->authorizeOrFail();
 
         $validated = $request->validate([
             'bulk_action' => ['required', 'string'],

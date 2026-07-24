@@ -2,6 +2,8 @@
 
 namespace App\AdminPanel;
 
+use App\AdminPanel\Menu\PanelMenu;
+
 class Panel
 {
     protected string $id;
@@ -18,8 +20,6 @@ class Panel
     protected ?string $navbarTitle = null;
 
     protected bool $showThemeToggle = true;
-
-    protected ?string $menu = null;
 
     protected ?string $loginRoute = 'login';
 
@@ -114,21 +114,6 @@ class Panel
         return $this->showThemeToggle;
     }
 
-    /**
-     * @param  class-string  $menuClass
-     */
-    public function menu(string $menuClass): static
-    {
-        $this->menu = $menuClass;
-
-        return $this;
-    }
-
-    public function getMenu(): ?string
-    {
-        return $this->menu;
-    }
-
     public function loginRoute(?string $route): static
     {
         $this->loginRoute = $route;
@@ -154,6 +139,16 @@ class Panel
     }
 
     /**
+     * Sidebar menu for this panel. Override in App\AdminPanel\Panels\* classes.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function menu(): array
+    {
+        return PanelMenu::make()->default()->build();
+    }
+
+    /**
      * Array shape used by helpers that previously read config('admin.panels.*').
      *
      * @return array<string, mixed>
@@ -164,7 +159,6 @@ class Panel
             'name' => $this->getName(),
             'prefix' => $this->getPrefix(),
             'middleware' => $this->getMiddleware(),
-            'menu' => $this->getMenu(),
             'auth' => [
                 'login_route' => $this->getLoginRoute(),
                 'home' => $this->getHome(),

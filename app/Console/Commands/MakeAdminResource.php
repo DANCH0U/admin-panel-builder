@@ -114,8 +114,8 @@ class MakeAdminResource extends Command
         $this->line("    Route::resource('{$key}', \\{$controllerNs}\\{$resource}Controller::class)" .
             ($withForm || $withView ? ';' : "->only(['index', 'destroy']);"));
         $this->newLine();
-        $menuHint = $panel->getMenu() ?? 'your panel menu class';
-        $this->line("Optional menu item in <fg=yellow>{$menuHint}</>:");
+        $menuHint = $panel::class;
+        $this->line("Optional menu item in <fg=yellow>{$menuHint}::menu()</>:");
         $this->line("    MenuItem::link('{$key}', admin_path('{$key}', '{$panelId}'))->icon('heroicons:rectangle-stack')->title('{$title}'),");
 
         return self::SUCCESS;
@@ -196,6 +196,11 @@ PHP;
 
     public function store(Request \$request)
     {
+        (new {$resource}FormPage(
+            action: admin_path('{$base['{{ key }}']}'),
+            method: 'POST',
+        ))->authorizeOrFail();
+
         \$validated = \$request->validate([
             'name' => ['required', 'string', 'max:255'],
         ]);
@@ -222,6 +227,12 @@ PHP;
 
     public function update(Request \$request, {$modelClass} \${$base['{{ modelVar }}']})
     {
+        (new {$resource}FormPage(
+            action: admin_path('{$base['{{ key }}']}/'.\${$base['{{ modelVar }}']}->getKey()),
+            method: 'PUT',
+            {$base['{{ modelVar }}']}: \${$base['{{ modelVar }}']},
+        ))->authorizeOrFail();
+
         \$validated = \$request->validate([
             'name' => ['required', 'string', 'max:255'],
         ]);
@@ -234,6 +245,8 @@ PHP;
 
     public function destroy({$modelClass} \${$base['{{ modelVar }}']})
     {
+        (new {$resource}Resource())->authorizeOrFail();
+
         \${$base['{{ modelVar }}']}->delete();
         Notify::success('{$base['{{ titleSingular }}']} deleted.');
 
@@ -245,6 +258,8 @@ PHP;
 
     public function destroy({$modelClass} \${$base['{{ modelVar }}']})
     {
+        (new {$resource}Resource())->authorizeOrFail();
+
         \${$base['{{ modelVar }}']}->delete();
         Notify::success('{$base['{{ titleSingular }}']} deleted.');
 

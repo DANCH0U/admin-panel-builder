@@ -24,6 +24,11 @@ class {{ class }} extends BasePage
         return $this->pageTitle ?? ($this->{{ modelVar }} ? 'Edit {{ titleSingular }}' : 'Create {{ titleSingular }}');
     }
 
+    public function authorize(): bool
+    {
+        return true;
+    }
+
     public function schema(): array
     {
         return [
