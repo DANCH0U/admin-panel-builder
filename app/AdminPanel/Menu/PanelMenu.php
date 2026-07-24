@@ -61,6 +61,9 @@ class PanelMenu
             $menu = $this->menu;
         }
 
-        return $menu;
+        return array_map(
+            fn ($item) => $item instanceof MenuItem ? $item->jsonSerialize() : $item,
+            $menu,
+        );
     }
 }

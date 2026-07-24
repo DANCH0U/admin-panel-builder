@@ -39,8 +39,9 @@ function submit() {
     const current = form as any;
     const verb = method.toLowerCase();
     const options = { forceFormData: true };
+    // PHP does not parse multipart PUT/PATCH bodies — spoof via POST + _method
+    const spoofAsPost = verb === 'put' || verb === 'patch';
 
-    // Ensure File values are included even if added after useForm() init
     current.transform((data: Record<string, unknown>) => {
         const next = { ...data };
         for (const key of Object.keys(current)) {
@@ -48,11 +49,19 @@ function submit() {
                 next[key] = current[key];
             }
         }
+        if (spoofAsPost) {
+            next._method = verb.toUpperCase();
+        }
         return next;
     });
 
-    if (typeof current[verb] === 'function') current[verb](props.node.action, options);
-    else if (typeof current.post === 'function') current.post(props.node.action, options);
+    if (spoofAsPost) {
+        current.post(props.node.action, options);
+    } else if (typeof current[verb] === 'function') {
+        current[verb](props.node.action, options);
+    } else if (typeof current.post === 'function') {
+        current.post(props.node.action, options);
+    }
 }
 </script>
 

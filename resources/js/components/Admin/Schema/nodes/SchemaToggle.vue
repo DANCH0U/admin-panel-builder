@@ -21,9 +21,9 @@ function disabled() {
             <Switch
                 v-if="node.name"
                 :id="node.name"
-                :checked="Boolean(form[node.name])"
+                :model-value="Boolean(form[node.name])"
                 :disabled="disabled()"
-                @update:checked="form[node.name!] = $event"
+                @update:model-value="form[node.name!] = $event"
             />
         </div>
         <SchemaFieldError :form="form" :name="node.name" />

@@ -181,6 +181,17 @@ function syncColumnVisibility() {
     }
 }
 
+function setColumnVisible(name: string, visible: boolean) {
+    columnVisibility.value = {
+        ...columnVisibility.value,
+        [name]: visible,
+    };
+}
+
+function keepColumnsMenuOpen(event: Event) {
+    event.preventDefault();
+}
+
 function readQueryState() {
     const params = new URLSearchParams(window.location.search);
     search.value = params.get('q') || '';
@@ -659,12 +670,9 @@ const confirmDestructive = computed(
                             v-for="column in toggleableColumns"
                             :key="column.name"
                             class="rounded-lg"
-                            :checked="columnVisibility[column.name] !== false"
-                            @update:checked="
-                                (v) => {
-                                    columnVisibility[column.name] = Boolean(v);
-                                }
-                            "
+                            :model-value="columnVisibility[column.name] !== false"
+                            @update:model-value="(v) => setColumnVisible(column.name, Boolean(v))"
+                            @select="keepColumnsMenuOpen"
                         >
                             {{ column.label || column.name }}
                         </DropdownMenuCheckboxItem>

@@ -18,8 +18,23 @@ const fileKey = computed(() => `${props.node.name}_file`);
 const currentUrl = computed(() => {
     if (localPreview.value) return localPreview.value;
     const value = props.form?.[props.node.name!];
-    return typeof value === 'string' && value ? value : null;
+    if (typeof value !== 'string' || !value) return null;
+    return resolvePreviewUrl(value);
 });
+
+function resolvePreviewUrl(value: string): string {
+    if (
+        value.startsWith('http://')
+        || value.startsWith('https://')
+        || value.startsWith('blob:')
+        || value.startsWith('/')
+        || value.startsWith('data:')
+    ) {
+        return value;
+    }
+
+    return `/storage/${value.replace(/^\/+/, '')}`;
+}
 
 function pick() {
     inputRef.value?.click();

@@ -6,6 +6,8 @@ This repo ships as a **clean kit** — no panels or demo resources. Follow the s
 
 **Login (after seed):** `admin@example.com` / `password`
 
+**Full Schema / DataGrid component reference:** [SDUI_DOCUMENTATION.md](./SDUI_DOCUMENTATION.md) — every page layout, field, view UI, and table column.
+
 ---
 
 ## 1. Install the project
@@ -59,7 +61,7 @@ $this
     ->showThemeToggle(true);
 ```
 
-Open [http://127.0.0.1:8000/admin](http://127.0.0.1:8000/admin) and sign in.
+Open [http://127.0.0.1:8000/admin](http://127.0.0.1:8000/login) and sign in.
 
 ### Extra panels
 
@@ -83,6 +85,29 @@ $this
 
 - **`->hidden()`** — hides the panel from the user-menu list only  
 - **Middleware** still controls access. A visible panel can still return **403 Unauthorized** if the user fails `admin` / other guards when they open the URL
+
+### Path helpers (`admin_path`, …)
+
+These helpers always target the **current panel** (set by the `panel:{id}` middleware on that request). You do **not** hardcode `/admin` in menus, forms, or actions.
+
+| Helper | Example | Result (on `/admin/…`) |
+|--------|---------|-------------------------|
+| `admin_panel()` | `admin_panel()` | `"admin"` (active panel key) |
+| `admin_prefix()` | `admin_prefix()` | `"admin"` |
+| `admin_path('posts')` | `admin_path('posts')` | `"/admin/posts"` |
+| `admin_url('posts')` | `admin_url('posts')` | full URL under that prefix |
+| `admin_home()` | `admin_home()` | panel home, e.g. `"/admin"` |
+| `admin_menu()` | `admin_menu()` | sidebar items for the current panel |
+
+Force another panel with the optional second argument:
+
+```php
+admin_path('posts', 'vendor'); // "/vendor/posts"
+```
+
+Outside a panel request (login, artisan, etc.), helpers fall back to `config('admin.default')` (usually `admin`).
+
+Use them everywhere you need a panel URL — menu links, form actions, DataGrid actions, redirects — so the same code works if you rename the prefix or run under another panel.
 
 ---
 
@@ -287,7 +312,7 @@ public function initialData(): array
 
 ### Create & update — `PostController` + `FileUploadService`
 
-FileInput submits the file as `{field}_file` (e.g. `image_file`). The form must include that key in initial data so Inertia sends it. Upload with `App\Services\FileUploadService` **before** saving the model:
+FileInput submits the file as `{field}_file` (e.g. `image_file`). The form must include that key in initial data so Inertia sends it. Schema forms automatically send **PUT/PATCH as POST + `_method`** when uploading files (PHP cannot parse multipart PUT bodies). Upload with `App\Services\FileUploadService` **before** saving the model:
 
 ```php
 use App\Services\FileUploadService;
@@ -364,23 +389,38 @@ public function destroy(Post $post, FileUploadService $uploads)
 
 ### View (show) — `PostViewPage`
 
+Put **Edit** / **Back** in a top flex row. Use `KeyValue` for text attributes and a separate `Image` block under the card (KeyValue is string→string and will not render uploads as pictures).
+
 ```php
-use App\AdminPanel\Schema\{Card, Heading, KeyValue, Text};
+use App\AdminPanel\Schema\{Button, Card, Flex, Heading, Image, KeyValue, Text};
 
 public function schema(): array
 {
     $record = $this->post;
 
     return [
-        Card::make()->border()->schema([
+        Flex::make()->justify('between')->schema([
             Heading::make($record->title ?? 'Post')->level(2),
+            Flex::make()->gap(2)->schema([
+                Button::make('Edit')
+                    ->variant('outline')
+                    ->url(admin_path('posts/'.$record->getKey().'/edit')),
+                Button::make('Back')
+                    ->variant('secondary')
+                    ->url(admin_path('posts')),
+            ]),
+        ]),
+        Card::make()->border()->schema([
             Text::make($record->description ?? '')->variant('body'),
             KeyValue::make()->entries([
                 'Title' => $record->title,
                 'Description' => $record->description,
-                'Image' => $record->image,
+                'Status' => $record->status,
+                'Active' => $record->is_active ? 'Yes' : 'No',
+                'Date' => $record->created_at?->format('M d, Y'),
             ]),
         ]),
+        Image::make($record->image)->label('Image'), // auto public URL
     ];
 }
 ```
@@ -485,6 +525,10 @@ Toolbar **Filters** and **Columns** controls are icon-only. Image columns resolv
 - **`->toggleable()`** — column appears in the **Columns** menu so users can show/hide it  
 
 Layout helpers for forms: `Card`, `Grid`, `Flex`, `Section`, `Tabs`.
+
+View helpers: `Heading`, `Text`, `KeyValue`, `Image::make($path)->label('Cover')` (resolves storage paths to public URLs).
+
+**See also:** complete catalog of page components, field options, and DataGrid UI in [SDUI_DOCUMENTATION.md](./SDUI_DOCUMENTATION.md).
 
 ---
 

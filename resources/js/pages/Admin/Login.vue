@@ -71,8 +71,8 @@ const submit = () => {
                 <div class="flex items-center gap-2">
                     <Checkbox
                         id="remember"
-                        :checked="remember"
-                        @update:checked="remember = Boolean($event)"
+                        :model-value="remember"
+                        @update:model-value="remember = Boolean($event)"
                     />
                     <Label for="remember">{{ tc('remember_me') }}</Label>
                 </div>

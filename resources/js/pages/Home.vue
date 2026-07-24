@@ -17,7 +17,7 @@ defineOptions({ layout: DefaultLayout });
 <template>
     <Head title="Dashboard" />
 
-    <div class="space-y-6">
+    <div class="flex justify-center items-center h-screen">
 
 
         <Card class="max-w-lg">

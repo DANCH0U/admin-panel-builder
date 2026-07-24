@@ -40,9 +40,9 @@ function toggle(value: string, checked: boolean | 'indeterminate') {
                 class="flex items-center gap-2 rounded-md px-1 py-1 text-sm"
             >
                 <Checkbox
-                    :checked="selected().includes(opt.value)"
+                    :model-value="selected().includes(opt.value)"
                     :disabled="disabled()"
-                    @update:checked="(v) => toggle(opt.value, v)"
+                    @update:model-value="(v) => toggle(opt.value, v)"
                 />
                 <span>{{ opt.label }}</span>
             </label>

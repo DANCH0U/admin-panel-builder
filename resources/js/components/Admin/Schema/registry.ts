@@ -7,6 +7,7 @@ import SchemaFlex from './nodes/SchemaFlex.vue';
 import SchemaForm from './nodes/SchemaForm.vue';
 import SchemaGrid from './nodes/SchemaGrid.vue';
 import SchemaHeading from './nodes/SchemaHeading.vue';
+import SchemaImage from './nodes/SchemaImage.vue';
 import SchemaJsonCode from './nodes/SchemaJsonCode.vue';
 import SchemaJsonInput from './nodes/SchemaJsonInput.vue';
 import SchemaKeyValue from './nodes/SchemaKeyValue.vue';
@@ -36,6 +37,7 @@ const registry: Record<string, Component> = {
     tabs: SchemaTabs,
     'ui-heading': SchemaHeading,
     'ui-text': SchemaText,
+    'ui-image': SchemaImage,
     'ui-button': SchemaUiButton,
     'key-value': SchemaKeyValue,
     'text-input': SchemaTextInput,

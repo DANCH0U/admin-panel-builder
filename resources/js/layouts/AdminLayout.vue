@@ -16,13 +16,11 @@ import { useI18n } from '@/composables/useI18n';
 import { useShellData } from '@/composables/useShellData';
 import { useAdminStore } from '@/stores/useAdminStore';
 import { cn } from '@/lib/utils';
+import { Icon } from '@iconify/vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import {
-    Beaker,
     Check,
     ChevronsUpDown,
-    Cog,
-    Home,
     Languages,
     LayoutGrid,
     LogOut,
@@ -32,7 +30,7 @@ import {
     UserRound,
     X,
 } from 'lucide-vue-next';
-import { computed, onMounted, ref, watch, type Component } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 
 const page = usePage();
 const { menu } = useShellData();
@@ -113,11 +111,34 @@ watch(
 
 const appName = computed(() => panelName.value);
 
-const currentPath = computed(() => page.url.split('?')[0]);
+const currentPath = computed(() => normalizePath(page.url.split('?')[0] || '/'));
 
-function isActive(url?: string) {
+/** Link items only (skip section labels). */
+const menuLinks = computed(() =>
+    (menu.value as any[]).filter((item) => item?.type !== 'label' && (item?.url || item?.href)),
+);
+
+function normalizePath(path: string): string {
+    const trimmed = path.trim();
+    if (!trimmed || trimmed === '/') return '/';
+    return trimmed.replace(/\/+$/, '') || '/';
+}
+
+/**
+ * Active when this item is the best (longest) match for the current URL.
+ * Avoids `/admin` highlighting on every `/admin/posts/...` page.
+ */
+function isActive(url?: string): boolean {
     if (!url) return false;
-    return currentPath.value === url || currentPath.value.startsWith(`${url}/`);
+    const target = normalizePath(url);
+    const current = currentPath.value;
+
+    const matches = menuLinks.value
+        .map((item) => normalizePath(String(item.url || item.href)))
+        .filter((href) => current === href || current.startsWith(`${href}/`))
+        .sort((a, b) => b.length - a.length);
+
+    return matches[0] === target;
 }
 
 function menuLabel(item: any) {
@@ -125,17 +146,6 @@ function menuLabel(item: any) {
     if (!key) return 'Item';
     const translated = ta(String(key));
     return translated !== String(key) ? translated : String(item.title || item.label || key);
-}
-
-const iconMap: Record<string, Component> = {
-    'heroicons:home': Home,
-    'heroicons:beaker': Beaker,
-    'heroicons:squares-2x2': LayoutGrid,
-    'heroicons:cog-6-tooth': Cog,
-};
-
-function menuIcon(item: any) {
-    return iconMap[item.icon] || null;
 }
 
 function toggleTheme() {
@@ -222,10 +232,10 @@ function setLocale(code: string) {
                             "
                             @click="admin.sideBarOpen = false"
                         >
-                            <component
-                                :is="menuIcon(item)"
-                                v-if="menuIcon(item)"
-                                class="size-4 shrink-0 opacity-70"
+                            <Icon
+                                v-if="item.icon"
+                                :icon="item.icon"
+                                class="size-5 shrink-0 opacity-70"
                             />
                             <span class="truncate">{{ menuLabel(item) }}</span>
                         </Link>

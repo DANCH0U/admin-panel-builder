@@ -18,9 +18,9 @@ function disabled() {
                 v-if="node.name"
                 :id="node.name"
                 class="rounded-[4px]"
-                :checked="Boolean(form[node.name])"
+                :model-value="Boolean(form[node.name])"
                 :disabled="disabled()"
-                @update:checked="form[node.name!] = $event"
+                @update:model-value="form[node.name!] = $event"
             />
             <Label v-if="node.name" :for="node.name" class="font-normal">
                 {{ node.label || node.name }}
