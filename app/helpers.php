@@ -14,7 +14,11 @@ if (! function_exists('admin_panel')) {
             return (string) app('admin.panel');
         }
 
-        return (string) config('admin.default', 'admin');
+        try {
+            return PanelRegistry::default()->getId();
+        } catch (Throwable) {
+            return 'admin';
+        }
     }
 }
 
@@ -50,7 +54,7 @@ if (! function_exists('admin_prefix')) {
         try {
             return admin_panel_instance($panel)->getPrefix();
         } catch (Throwable) {
-            return trim((string) config('admin.prefix', 'admin'), '/');
+            return 'admin';
         }
     }
 }

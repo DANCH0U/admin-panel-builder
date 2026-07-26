@@ -39,29 +39,34 @@ A **panel** is one admin area (URL prefix, middleware, branding, sidebar menu).
 php artisan make:admin-panel admin
 ```
 
-This creates:
+This scaffolds a **complete starter panel** and registers it in `app/Providers/AdminPanelProvider.php`:
 
 | File | Purpose |
 |------|---------|
-| `app/AdminPanel/Panels/AdminPanel.php` | Settings + `menu()` |
-| `routes/panels/admin.php` | Dashboard + profile routes |
+| `app/AdminPanel/Panels/AdminPanel.php` | Settings + sidebar `menu()` |
+| `routes/panels/admin.php` | Dashboard, profile, users routes |
+| `…/Pages/Admin/DashboardPage.php` + `DashboardController` | Dashboard with charts |
+| `…/Pages/Admin/ProfilePage.php` + `ProfileController` | Profile (account + delete) |
+| `…/Resources/Admin/UserResource.php` | Users DataGrid + schema header |
+| `…/Pages/Admin/UserFormPage.php` / `UserViewPage.php` | Create / edit / view |
+| `…/Http/Controllers/Admin/UserController.php` | Users CRUD |
 
-…and registers the class in `app/Providers/AdminPanelProvider.php`.
+Every generated page includes a **heading + description**, cards, and spacing (`Space` / sticky mobile actions).
 
-Tighten the panel for a full admin area (middleware + branding):
+Optional — lock the panel to `is_admin` users:
 
 ```php
 // app/AdminPanel/Panels/AdminPanel.php
 $this
     ->prefix('admin')
-    ->middleware(['auth', 'admin', 'panel:admin']) // admin middleware → is_admin users only
+    ->middleware(['auth', 'admin', 'panel:admin'])
     ->name('Admin Panel')
     ->logo('/admin-logo.svg')
     ->navbarTitle('Admin Panel')
     ->showThemeToggle(true);
 ```
 
-Open [http://127.0.0.1:8000/login](http://127.0.0.1:8000/login) and sign in.
+Open [http://127.0.0.1:8000/login](http://127.0.0.1:8000/login) and sign in → `/admin` (dashboard), `/admin/users`, `/admin/profile`.
 
 ### Extra panels
 
@@ -193,7 +198,7 @@ php artisan migrate
 
 | Command | What it does |
 |---------|----------------|
-| `make:admin-panel {name}` | New panel class + routes file |
+| `make:admin-panel {name}` | Panel + Dashboard, Profile, Users CRUD (form + view) |
 | `make:admin-resource {name} --panel=` | Table resource + controller (CRUD list) |
 | `make:admin-resource … --form` | Also create/edit form page |
 | `make:admin-resource … --view` | Also show/view page |
@@ -454,6 +459,8 @@ public function schema(): array
 
 ### DataGrid (index table) — `PostResource`
 
+Index pages render a schema **`header()`** above the table (title, actions, cards, …), then the DataGrid. Controllers use `$resource->toIndexProps($engine->handle(...))`.
+
 Generated resources include status **tabs** and an **is_active** filter. Example for Posts:
 
 ```php
@@ -553,7 +560,93 @@ Toolbar **Filters** and **Columns** controls are icon-only. Image columns resolv
 
 Layout helpers for forms: `Card`, `Grid`, `Flex`, `Section`, `Tabs`.
 
-View helpers: `Heading`, `Text`, `KeyValue`, `Image::make($path)->label('Cover')` (resolves storage paths to public URLs).
+View helpers: `Heading`, `Text`, `KeyValue`, `Chart`, `Space`, `Image::make($path)->label('Cover')` (resolves storage paths to public URLs).
+
+Form action bars on mobile: `Flex::make()->justify('end')->sticky()->schema([…])` — floats at the bottom on small screens.
+
+Buttons default to `type="button"`. Only `->submit()` (or `->type('submit')`) makes them submit the form.
+
+### Charts (ApexCharts)
+
+Schema-driven charts via `Chart::make()` → Vue `SchemaChart` + [ApexCharts](https://apexcharts.com/).
+
+```php
+use App\AdminPanel\Schema\{Card, Chart, Grid, Heading};
+
+public function schema(): array
+{
+    return [
+        Heading::make('Reports')->level(2),
+        Grid::make(2)->schema([
+            Chart::make()
+                ->border()
+                ->label('Signups')
+                ->type('area')          // area | line | bar | pie | donut | …
+                ->height(280)
+                ->categories(['Mon', 'Tue', 'Wed', 'Thu', 'Fri'])
+                ->series([
+                    ['name' => 'Users', 'data' => [4, 7, 5, 12, 9]],
+                ]),
+
+            Chart::make()
+                ->border()
+                ->label('Roles')
+                ->type('donut')
+                ->height(280)
+                ->labels(['Admin', 'User'])
+                ->series([12, 88]),
+
+            // Or load data from an API (shows a spinner while fetching)
+            Chart::make()
+                ->border()
+                ->label('Signups (live)')
+                ->type('area')
+                ->height(280)
+                ->api('/admin/api/signups'),
+        ]),
+    ];
+}
+```
+
+API JSON shape (also accepted under a `data` key):
+
+```json
+{
+  "series": [{ "name": "Users", "data": [4, 7, 5, 12, 9] }],
+  "categories": ["Mon", "Tue", "Wed", "Thu", "Fri"]
+}
+```
+
+| Method | Purpose |
+|--------|---------|
+| `->type('area')` | Apex chart type |
+| `->height(320)` | Chart height in px |
+| `->series([...])` | Line/area/bar: `[['name' => '…', 'data' => […]]]`; pie/donut: `[44, 55]` |
+| `->categories([...])` | X-axis labels (cartesian charts) |
+| `->labels([...])` | Slice labels (pie / donut) |
+| `->colors([...])` | Optional color overrides (defaults use theme tokens) |
+| `->options([...])` | Raw ApexCharts options (deep-merged) |
+| `->api('/path')` | GET JSON for `series` (+ optional `categories` / `labels` / `colors` / `options`); shows loading spinner |
+| `->sparkline()` | Compact sparkline mode |
+| `->toolbar()` | Show Apex toolbar |
+| `->border()` | Wrap in `admin-surface` card |
+
+Generated panel dashboards include sample area + donut charts. Vue registration: `vue3-apexcharts` in `resources/js/app.ts`; node: `resources/js/components/Admin/Schema/nodes/SchemaChart.vue`.
+
+### Theme (colors & roundness)
+
+Edit CSS tokens — no Tailwind config file:
+
+| File | What to change |
+|------|----------------|
+| `resources/css/theme/tokens.css` | `--radius` + light colors (`--primary`, `--sidebar`, …) |
+| `resources/css/theme/dark.css` | Dark mode overrides |
+| `resources/css/theme/base.css` | Body / base styles |
+| `resources/css/theme/utilities.css` | `.admin-surface` |
+
+Change `--radius` in `tokens.css` to scale all `rounded-*` utilities.
+
+Panel navigation loader (pagination, visits, etc.) waits `config('admin.ui.loading_delay_ms')` (default **200**, env `ADMIN_LOADING_DELAY_MS`) before showing — fast requests feel instant.
 
 **See also:** complete catalog of page components, field options, and DataGrid UI in [SDUI_DOCUMENTATION.md](./SDUI_DOCUMENTATION.md).
 

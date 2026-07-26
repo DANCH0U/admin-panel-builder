@@ -12,9 +12,9 @@ class MakeAdminPanel extends Command
     protected $signature = 'make:admin-panel
         {name : Panel key, e.g. vendor or Vendor}
         {--prefix= : URL prefix (defaults to panel key)}
-        {--force : Overwrite existing panel / route files}';
+        {--force : Overwrite existing panel files}';
 
-    protected $description = 'Scaffold a panel class (settings + menu) under AdminPanel/Panels and register it';
+    protected $description = 'Scaffold a panel with dashboard, profile, and User CRUD by default';
 
     public function __construct(protected Filesystem $files)
     {
@@ -38,56 +38,88 @@ class MakeAdminPanel extends Command
             return self::FAILURE;
         }
 
-        $this->writePanelClass($class, $key, $prefix, $title);
-        $this->writeRoutes($key, $title);
+        $replace = [
+            '{{ class }}' => $class,
+            '{{ id }}' => $key,
+            '{{ prefix }}' => $prefix,
+            '{{ title }}' => $title,
+            '{{ panel }}' => $key,
+            '{{ panelStudly }}' => $studly,
+        ];
+
+        $this->writeFromStub(app_path("AdminPanel/Panels/{$class}.php"), 'admin-panel.stub', $replace);
+        $this->writeFromStub(base_path("routes/panels/{$key}.php"), 'admin-panel-routes.stub', $replace);
+
+        $this->writeFromStub(
+            app_path("AdminPanel/Pages/{$studly}/DashboardPage.php"),
+            'admin-panel-dashboard-page.stub',
+            $replace,
+        );
+        $this->writeFromStub(
+            app_path("Http/Controllers/{$studly}/DashboardController.php"),
+            'admin-panel-dashboard-controller.stub',
+            $replace,
+        );
+
+        $this->writeFromStub(
+            app_path("AdminPanel/Pages/{$studly}/ProfilePage.php"),
+            'admin-panel-profile-page.stub',
+            $replace,
+        );
+        $this->writeFromStub(
+            app_path("Http/Controllers/{$studly}/ProfileController.php"),
+            'admin-panel-profile-controller.stub',
+            $replace,
+        );
+
+        $this->writeFromStub(
+            app_path("AdminPanel/Resources/{$studly}/UserResource.php"),
+            'admin-panel-user-resource.stub',
+            $replace,
+        );
+        $this->writeFromStub(
+            app_path("AdminPanel/Pages/{$studly}/UserFormPage.php"),
+            'admin-panel-user-form.stub',
+            $replace,
+        );
+        $this->writeFromStub(
+            app_path("AdminPanel/Pages/{$studly}/UserViewPage.php"),
+            'admin-panel-user-view.stub',
+            $replace,
+        );
+        $this->writeFromStub(
+            app_path("Http/Controllers/{$studly}/UserController.php"),
+            'admin-panel-user-controller.stub',
+            $replace,
+        );
+
         $this->registerInProvider($fqcn, $class);
 
         $this->newLine();
         $this->components->info("Panel [{$key}] ready.");
         $this->line("Class: <fg=yellow>{$fqcn}</>");
         $this->line("Routes: <fg=yellow>routes/panels/{$key}.php</>");
-        $this->line('Edit menu() on the panel class to add sidebar items.');
+        $this->line('Includes: Dashboard, Profile, Users CRUD (resource + form + view).');
+        $this->line('Optional: add <fg=yellow>admin</> middleware on the panel for is_admin-only access.');
 
         return self::SUCCESS;
     }
 
-    protected function writePanelClass(string $class, string $key, string $prefix, string $title): void
+    /**
+     * @param  array<string, string>  $replace
+     */
+    protected function writeFromStub(string $path, string $stub, array $replace): void
     {
-        $path = app_path("AdminPanel/Panels/{$class}.php");
-
         if ($this->files->exists($path) && ! $this->option('force')) {
             $this->components->warn("Skipped (exists): {$path}");
 
             return;
         }
 
-        $stub = $this->files->get(app_path('Console/Commands/Stubs/admin-panel.stub'));
-        $stub = str_replace(
-            ['{{ class }}', '{{ id }}', '{{ prefix }}', '{{ title }}'],
-            [$class, $key, $prefix, $title],
-            $stub,
-        );
-
         $this->files->ensureDirectoryExists(dirname($path));
-        $this->files->put($path, $stub);
-        $this->components->info("Created: {$path}");
-    }
-
-    protected function writeRoutes(string $key, string $title): void
-    {
-        $path = base_path("routes/panels/{$key}.php");
-
-        if ($this->files->exists($path) && ! $this->option('force')) {
-            $this->components->warn("Skipped (exists): {$path}");
-
-            return;
-        }
-
-        $stub = $this->files->get(app_path('Console/Commands/Stubs/admin-panel-routes.stub'));
-        $stub = str_replace(['{{ panel }}', '{{ title }}'], [$key, $title], $stub);
-
-        $this->files->ensureDirectoryExists(dirname($path));
-        $this->files->put($path, $stub);
+        $contents = $this->files->get(app_path("Console/Commands/Stubs/{$stub}"));
+        $contents = str_replace(array_keys($replace), array_values($replace), $contents);
+        $this->files->put($path, $contents);
         $this->components->info("Created: {$path}");
     }
 

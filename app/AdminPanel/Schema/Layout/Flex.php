@@ -14,6 +14,7 @@ class Flex extends Component
     protected string $align = 'center';
     protected int $gap = 4;
     protected bool $wrap = false;
+    protected bool $sticky = false;
 
     protected function getType(): string
     {
@@ -50,6 +51,16 @@ class Flex extends Component
         return $this;
     }
 
+    /**
+     * Floating action bar on mobile; normal flex layout from md up.
+     */
+    public function sticky(bool $sticky = true): static
+    {
+        $this->sticky = $sticky;
+
+        return $this;
+    }
+
     public function toArray(): array
     {
         return array_merge(parent::toArray(), [
@@ -58,6 +69,7 @@ class Flex extends Component
             'align' => $this->align,
             'gap' => $this->gap,
             'wrap' => $this->wrap,
+            'sticky' => $this->sticky,
             'schema' => $this->serializeSchema(),
         ]);
     }

@@ -4,13 +4,13 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Default panel key
+    | Default panel 
     |--------------------------------------------------------------------------
     |
-    | Panels are classes under App\AdminPanel\Panels, registered in AdminPanelProvider.
+    | Default admin panel is different for each user .
     |
     */
-    'default' => env('ADMIN_DEFAULT_PANEL', 'admin'),
+
 
     /*
     |--------------------------------------------------------------------------
@@ -35,7 +35,20 @@ return [
         ],
     ],
 
-    'default_locale' => env('ADMIN_LOCALE', env('APP_LOCALE', 'en')),
+    'default_locale' => 'en',
+
+    /*
+    |--------------------------------------------------------------------------
+    | UI
+    |--------------------------------------------------------------------------
+    */
+    'ui' => [
+        /*
+         * Delay (ms) before the panel navigation loader appears.
+         * Fast requests under this threshold feel instant (no flash).
+         */
+        'loading_delay_ms' => 200,
+    ],
 
     /*
     |--------------------------------------------------------------------------
@@ -43,9 +56,9 @@ return [
     |--------------------------------------------------------------------------
     */
     'uploads' => [
-        'max_size_kb' => (int) env('ADMIN_MAX_UPLOAD_KB', 4096),
-        'image_mimes' => env('ADMIN_IMAGE_MIMES', 'jpeg,jpg,png,webp,avif'),
-        'disk' => env('ADMIN_UPLOAD_DISK', 'public'),
+        'max_size_kb' => 4096,
+        'image_mimes' => 'jpeg,jpg,png,webp,avif',
+        'disk' => 'public',
     ],
 
     /*
@@ -54,21 +67,9 @@ return [
     |--------------------------------------------------------------------------
     */
     'table' => [
-        'default_per_page' => (int) env('ADMIN_TABLE_PER_PAGE', 25),
+        'default_per_page' => 25,
         'per_page_options' => [10, 25, 50, 100],
-        'tab_counts' => (bool) env('ADMIN_TABLE_TAB_COUNTS', false),
-        'tab_count_ttl' => (int) env('ADMIN_TABLE_TAB_COUNT_TTL', 300),
+        'tab_counts' => true,
+        'tab_count_ttl' => 300,
     ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Backward-compatible aliases
-    |--------------------------------------------------------------------------
-    */
-    'name' => env('ADMIN_NAME', 'Admin Panel'),
-    'prefix' => env('ADMIN_PREFIX', 'admin'),
-    'admin_route_prefix' => env('ADMIN_PREFIX', 'admin'),
-    'max_upload_size' => (int) env('ADMIN_MAX_UPLOAD_KB', 4096),
-    'supported_image_mimes' => env('ADMIN_IMAGE_MIMES', 'jpeg,jpg,png,webp,avif'),
-
 ];

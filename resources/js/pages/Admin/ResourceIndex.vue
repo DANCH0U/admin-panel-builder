@@ -1,33 +1,24 @@
 <script setup lang="ts">
 import DataTable from '@/components/Admin/Tables/DataTable.vue';
-import { Button } from '@/components/ui/button';
+import SchemaRenderer from '@/components/Admin/Schema/SchemaRenderer.vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 
 defineOptions({ layout: AdminLayout });
 
 defineProps<{
     resource: Record<string, unknown>;
-    title: string;
-    description?: string | null;
-    createUrl?: string | null;
-    createLabel?: string | null;
+    title?: string | null;
+    header?: Array<Record<string, unknown>>;
 }>();
 </script>
 
 <template>
-    <Head :title="title" />
 
-    <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div class="space-y-1">
-            <h1 class="text-3xl font-semibold tracking-tight">{{ title }}</h1>
-            <p v-if="description" class="max-w-xl text-sm text-muted-foreground">
-                {{ description }}
-            </p>
-        </div>
-        <Button v-if="createUrl" class="rounded-xl px-4" as-child>
-            <Link :href="createUrl">{{ createLabel || 'Add' }}</Link>
-        </Button>
+    <Head :title="title || 'Admin Panel'" />
+
+    <div v-if="header?.length">
+        <SchemaRenderer :schema="header" />
     </div>
 
     <div class="admin-surface p-4 md:p-5">

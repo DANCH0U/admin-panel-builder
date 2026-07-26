@@ -10,6 +10,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import NotificationHost from '@/components/Admin/NotificationHost.vue';
+import AdminLoadingIndicator from '@/components/Admin/AdminLoadingIndicator.vue';
 import { useAdminConfig } from '@/composables/useAdminConfig';
 import { useAuth } from '@/composables/useAuth';
 import { useI18n } from '@/composables/useI18n';
@@ -165,6 +166,7 @@ function setLocale(code: string) {
 <template>
     <div class="min-h-screen bg-background text-foreground">
         <NotificationHost />
+        <AdminLoadingIndicator />
 
         <div class="flex min-h-screen">
             <div
@@ -359,7 +361,7 @@ function setLocale(code: string) {
                     <Menu class="size-4" />
                 </Button>
 
-                <main class="flex-1 overflow-y-auto p-4 pt-14 md:p-6 lg:p-8 lg:pt-8">
+                <main class="flex-1 overflow-y-auto p-4 pt-14 pb-24 md:p-6 md:pb-6 lg:p-8 lg:pt-8 lg:pb-8">
                     <div class="mx-auto w-full max-w-6xl">
                         <slot />
                     </div>

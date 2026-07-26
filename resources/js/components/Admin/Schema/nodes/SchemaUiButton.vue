@@ -9,20 +9,33 @@ function disabled() {
     return isNodeDisabled(props.node, props.form) || Boolean(props.form?.processing);
 }
 
-function onClick() {
+function buttonType(): 'button' | 'submit' | 'reset' {
+    const raw = String(props.node.type_attr || props.node.buttonType || 'button').toLowerCase();
+    if (raw === 'submit' || raw === 'reset') return raw;
+    return 'button';
+}
+
+function onClick(event: MouseEvent) {
+    if (buttonType() === 'submit') {
+        return;
+    }
+
+    event.preventDefault();
+
     if (props.node.is_back) {
         window.history.back();
         return;
     }
-    if (props.node.url) router.visit(props.node.url);
+    if (props.node.url) router.visit(String(props.node.url));
 }
 </script>
 
 <template>
     <Button
-        :type="(node.type_attr || node.buttonType || 'button') as any"
+        :type="buttonType()"
         :variant="buttonVariant(node.variant) as any"
         :disabled="disabled()"
+        class="rounded-xl"
         @click="onClick"
     >
         {{ node.label || 'Button' }}

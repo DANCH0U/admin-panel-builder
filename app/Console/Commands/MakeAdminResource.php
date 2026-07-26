@@ -152,11 +152,16 @@ PHP;
                     ->delete(fn (array $record) => admin_path('{{ key }}/'.$record['id'])),
 PHP;
 
+        $headerActions = $withForm
+            ? "                        Button::make('Add {{ titleSingular }}')->url(admin_path('{{ key }}/create')),"
+            : '                        // Button::make(\'Custom action\')->variant(\'outline\')->url(admin_path(\'…\')),';
+
         $this->writeFromStub(
             app_path("AdminPanel/Resources/{$panelStudly}/{$resourceClass}.php"),
             'admin-resource.stub',
             array_merge($base, [
                 '{{ actions }}' => implode("\n", $actions),
+                '{{ headerActions }}' => $headerActions,
             ]),
         );
     }

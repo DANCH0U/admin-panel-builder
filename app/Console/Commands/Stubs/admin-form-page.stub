@@ -7,6 +7,9 @@ use App\AdminPanel\Schema\Button;
 use App\AdminPanel\Schema\Card;
 use App\AdminPanel\Schema\Flex;
 use App\AdminPanel\Schema\Form;
+use App\AdminPanel\Schema\Heading;
+use App\AdminPanel\Schema\Space;
+use App\AdminPanel\Schema\Text;
 use App\AdminPanel\Schema\TextInput;
 use {{ modelFqcn }};
 
@@ -31,7 +34,23 @@ class {{ class }} extends BasePage
 
     public function schema(): array
     {
+        $heading = $this->{{ modelVar }} ? 'Edit {{ titleSingular }}' : 'Create {{ titleSingular }}';
+        $description = $this->{{ modelVar }}
+            ? 'Update this {{ titleSingular }} record.'
+            : 'Create a new {{ titleSingular }}.';
+
         return [
+            Flex::make()
+                ->direction('column')
+                ->align('start')
+                ->gap(1)
+                ->schema([
+                    Heading::make($heading)->level(1),
+                    Text::make($description)->variant('subdued'),
+                ]),
+
+            Space::make(6),
+
             Form::make()
                 ->action($this->action)
                 ->method($this->method)
@@ -39,12 +58,15 @@ class {{ class }} extends BasePage
                     Card::make()
                         ->border()
                         ->label('{{ titleSingular }}')
+                        ->helpText('Fill in the fields below.')
                         ->schema([
                             TextInput::make('name')
                                 ->label('Name')
                                 ->required(),
                         ]),
-                    Flex::make()->justify('end')->schema([
+                    Space::make(4),
+                    Flex::make()->justify('end')->sticky()->schema([
+                        Button::make('Cancel')->variant('secondary')->back(),
                         Button::make('Save')->submit(),
                     ]),
                 ]),

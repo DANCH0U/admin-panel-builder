@@ -14,23 +14,24 @@ class {{ class }} extends Panel
 
         $this
             ->prefix('{{ prefix }}')
+            // Add 'admin' middleware for is_admin-only access: ['auth', 'admin', 'panel:{{ id }}']
             ->middleware(['auth', 'panel:{{ id }}'])
             ->name('{{ title }}')
             ->logo(null)
             ->navbarTitle('{{ title }}')
             ->showThemeToggle(true);
-            // ->hidden(); // hide from user-menu switcher (middleware still guards URL access)
+            // ->hidden(); // hide from user-menu switcher
     }
 
     public function menu(): array
     {
         return PanelMenu::make()
             ->default()
-            // ->section('main', [
-            //     MenuItem::link('items', admin_path('items'))
-            //         ->icon('heroicons:rectangle-stack')
-            //         ->title('Items'),
-            // ])
+            ->section('management', [
+                MenuItem::link('users', admin_path('users'))
+                    ->icon('heroicons:users')
+                    ->title('Users'),
+            ])
             ->build();
     }
 }

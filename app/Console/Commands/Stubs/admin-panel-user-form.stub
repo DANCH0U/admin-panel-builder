@@ -1,0 +1,112 @@
+<?php
+
+namespace App\AdminPanel\Pages\{{ panelStudly }};
+
+use App\AdminPanel\Engine\BasePage;
+use App\AdminPanel\PanelRegistry;
+use App\AdminPanel\Schema\Button;
+use App\AdminPanel\Schema\Card;
+use App\AdminPanel\Schema\Flex;
+use App\AdminPanel\Schema\Form;
+use App\AdminPanel\Schema\Grid;
+use App\AdminPanel\Schema\Heading;
+use App\AdminPanel\Schema\Select;
+use App\AdminPanel\Schema\Space;
+use App\AdminPanel\Schema\Text;
+use App\AdminPanel\Schema\TextInput;
+use App\AdminPanel\Schema\Toggle;
+use App\Models\User;
+
+class UserFormPage extends BasePage
+{
+    public function __construct(
+        protected string $action,
+        protected string $method = 'POST',
+        protected ?string $pageTitle = null,
+        protected ?User $user = null,
+    ) {}
+
+    public function title(): ?string
+    {
+        return $this->pageTitle ?? ($this->user ? 'Edit user' : 'Create user');
+    }
+
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    public function schema(): array
+    {
+        $panelOptions = collect(PanelRegistry::all())
+            ->mapWithKeys(fn ($panel) => [$panel->getId() => $panel->getName()])
+            ->all();
+
+        $heading = $this->user ? 'Edit user' : 'Create user';
+        $description = $this->user
+            ? 'Update this user’s account details and panel access.'
+            : 'Add a new user with name, email, password, and panel access.';
+
+        return [
+            Flex::make()
+                ->direction('column')
+                ->align('start')
+                ->gap(1)
+                ->schema([
+                    Heading::make($heading)->level(1),
+                    Text::make($description)->variant('subdued'),
+                ]),
+
+            Space::make(6),
+
+            Form::make()
+                ->action($this->action)
+                ->method($this->method)
+                ->schema([
+                    Card::make()
+                        ->border()
+                        ->label('User details')
+                        ->helpText('Fields from the User model.')
+                        ->schema([
+                            Grid::make(2)->schema([
+                                TextInput::make('name')
+                                    ->label('Name')
+                                    ->required(),
+                                TextInput::make('email')
+                                    ->label('Email')
+                                    ->email()
+                                    ->required(),
+                                TextInput::make('password')
+                                    ->label('Password')
+                                    ->password()
+                                    ->helpText($this->user ? 'Leave blank to keep the current password.' : 'Required for new users.')
+                                    ->required(! $this->user),
+                                Select::make('default_panel')
+                                    ->label('Default panel')
+                                    ->options($panelOptions)
+                                    ->placeholder('None'),
+                            ]),
+                            Space::make(4),
+                            Toggle::make('is_admin')
+                                ->label('Admin access'),
+                        ]),
+                    Space::make(4),
+                    Flex::make()->justify('end')->sticky()->schema([
+                        Button::make('Cancel')->variant('secondary')->back(),
+                        Button::make('Save')->variant('primary')->submit(),
+                    ]),
+                ]),
+        ];
+    }
+
+    public function initialData(): array
+    {
+        return [
+            'name' => $this->user?->name ?? '',
+            'email' => $this->user?->email ?? '',
+            'password' => '',
+            'is_admin' => (bool) ($this->user?->is_admin ?? false),
+            'default_panel' => $this->user?->default_panel ?? '',
+        ];
+    }
+}

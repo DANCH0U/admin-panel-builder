@@ -1,5 +1,6 @@
 import type { Component } from 'vue';
 import SchemaCard from './nodes/SchemaCard.vue';
+import SchemaChart from './nodes/SchemaChart.vue';
 import SchemaCheckbox from './nodes/SchemaCheckbox.vue';
 import SchemaDateTime from './nodes/SchemaDateTime.vue';
 import SchemaFileInput from './nodes/SchemaFileInput.vue';
@@ -16,6 +17,7 @@ import SchemaMultiSelect from './nodes/SchemaMultiSelect.vue';
 import SchemaNumber from './nodes/SchemaNumber.vue';
 import SchemaSection from './nodes/SchemaSection.vue';
 import SchemaSelect from './nodes/SchemaSelect.vue';
+import SchemaSpace from './nodes/SchemaSpace.vue';
 import SchemaTabs from './nodes/SchemaTabs.vue';
 import SchemaText from './nodes/SchemaText.vue';
 import SchemaTextarea from './nodes/SchemaTextarea.vue';
@@ -34,6 +36,8 @@ const registry: Record<string, Component> = {
     flex: SchemaFlex,
     section: SchemaSection,
     card: SchemaCard,
+    chart: SchemaChart,
+    space: SchemaSpace,
     tabs: SchemaTabs,
     'ui-heading': SchemaHeading,
     'ui-text': SchemaText,

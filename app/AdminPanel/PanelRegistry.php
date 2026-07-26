@@ -52,12 +52,6 @@ class PanelRegistry
 
     public static function default(): Panel
     {
-        $default = (string) config('admin.default', 'admin');
-
-        if (static::has($default)) {
-            return static::get($default);
-        }
-
         $first = reset(static::$panels);
 
         if ($first instanceof Panel) {

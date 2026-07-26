@@ -1,0 +1,56 @@
+/* =============================================================================
+   Theme tokens — edit colors & roundness here
+   ============================================================================= */
+
+:root {
+    /* Roundness: change --radius to scale all rounded-* utilities */
+    --radius: 0.85rem;
+
+    /* Surfaces */
+    --background: oklch(0.985 0.004 250);
+    --foreground: oklch(0.2 0.02 260);
+    --card: oklch(0.995 0.002 250);
+    --card-foreground: oklch(0.2 0.02 260);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.2 0.02 260);
+
+    /* Brand */
+    --primary: oklch(0.42 0.09 250);
+    --primary-foreground: oklch(0.98 0.01 250);
+    --secondary: oklch(0.95 0.01 250);
+    --secondary-foreground: oklch(0.28 0.03 250);
+    --accent: oklch(0.95 0.02 230);
+    --accent-foreground: oklch(0.28 0.04 250);
+
+    /* Muted / borders */
+    --muted: oklch(0.96 0.008 250);
+    --muted-foreground: oklch(0.5 0.02 260);
+    --border: oklch(0.9 0.01 250);
+    --input: oklch(0.9 0.01 250);
+    --ring: oklch(0.55 0.08 250);
+
+    /* Status */
+    --destructive: oklch(0.58 0.2 25);
+    --destructive-foreground: oklch(0.98 0 0);
+
+    /* Charts */
+    --chart-1: oklch(0.55 0.12 250);
+    --chart-2: oklch(0.65 0.12 170);
+    --chart-3: oklch(0.7 0.12 80);
+    --chart-4: oklch(0.6 0.14 310);
+    --chart-5: oklch(0.65 0.14 30);
+
+    /* Sidebar */
+    --sidebar: oklch(1 0 0);
+    --sidebar-foreground: oklch(0.28 0.02 260);
+    --sidebar-primary: oklch(0.42 0.09 250);
+    --sidebar-primary-foreground: oklch(0.98 0.01 250);
+    --sidebar-accent: oklch(0.96 0.01 250);
+    --sidebar-accent-foreground: oklch(0.24 0.03 250);
+    --sidebar-border: oklch(0.9 0.01 250);
+    --sidebar-ring: oklch(0.55 0.08 250);
+
+    /* Atmosphere (body gradients) */
+    --atmosphere-1: oklch(0.85 0.05 220 / 0.35);
+    --atmosphere-2: oklch(0.9 0.04 280 / 0.25);
+}

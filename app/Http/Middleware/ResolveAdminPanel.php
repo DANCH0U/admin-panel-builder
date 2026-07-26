@@ -19,7 +19,16 @@ class ResolveAdminPanel
      */
     public function handle(Request $request, Closure $next, ?string $panel = null): Response
     {
-        $key = $panel ?: $this->detectFromRequest($request)?->getId() ?: config('admin.default', 'admin');
+        $key = $panel
+            ?: $this->detectFromRequest($request)?->getId();
+
+        if (! $key) {
+            try {
+                $key = PanelRegistry::default()->getId();
+            } catch (\Throwable) {
+                abort(404, 'No admin panels have been registered.');
+            }
+        }
 
         if (! PanelRegistry::has($key)) {
             abort(404, "Unknown admin panel [{$key}].");

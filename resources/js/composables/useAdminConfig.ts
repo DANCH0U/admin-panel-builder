@@ -23,6 +23,7 @@ type PanelShared = {
         family?: string;
     }>;
     menu?: unknown[];
+    loading_delay_ms?: number;
 };
 
 export function useAdminConfig() {
@@ -57,6 +58,10 @@ export function useAdminConfig() {
         logoUrl: computed(() => panel.value.logo_url ?? null),
         navbarTitle: computed(() => panel.value.navbar_title ?? null),
         showThemeToggle: computed(() => panel.value.show_theme_toggle ?? true),
+        loadingDelayMs: computed(() => {
+            const raw = Number(panel.value.loading_delay_ms ?? 200);
+            return Number.isFinite(raw) && raw >= 0 ? raw : 200;
+        }),
         loginPath: computed(() => adminPath('login')),
     };
 }

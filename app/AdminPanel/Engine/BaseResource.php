@@ -56,6 +56,54 @@ abstract class BaseResource
     }
 
     /**
+     * Document title for <Head> (browser tab).
+     */
+    public function title(): ?string
+    {
+        return null;
+    }
+
+    /**
+     * Schema nodes rendered above the DataTable (headings, cards, action buttons, …).
+     *
+     * @return list<\App\AdminPanel\Schema\Component|array<string, mixed>>
+     */
+    public function header(): array
+    {
+        return [];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function getSerializedHeader(): array
+    {
+        return array_values(array_map(
+            fn (mixed $component) => is_object($component) && method_exists($component, 'toArray')
+                ? $component->toArray()
+                : $component,
+            $this->header(),
+        ));
+    }
+
+    /**
+     * Props for Admin/ResourceIndex Inertia page.
+     *
+     * @param  array<string, mixed>  $resourceData  Output of DataGridEngine::handle()
+     * @return array{resource: array<string, mixed>, title: ?string, header: list<array<string, mixed>>}
+     */
+    public function toIndexProps(array $resourceData): array
+    {
+        $this->authorizeOrFail();
+
+        return [
+            'resource' => $resourceData,
+            'title' => $this->title(),
+            'header' => $this->getSerializedHeader(),
+        ];
+    }
+
+    /**
      * Transform raw model arrays to action-resolved rows for the frontend.
      */
     public function transform(array $items, array $actions): array

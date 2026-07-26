@@ -6,6 +6,7 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createPinia } from 'pinia';
 import type { DefineComponent } from 'vue';
 import { createApp, h } from 'vue';
+import VueApexCharts from 'vue3-apexcharts';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -20,10 +21,13 @@ createInertiaApp({
         const app = createApp({ render: () => h(App, props) });
         const pinia = createPinia();
 
-        app.use(pinia).use(plugin).component('Icon', Icon);
+        app.use(pinia).use(plugin).use(VueApexCharts).component('Icon', Icon);
         app.mount(el);
     },
     progress: {
-        color: '#4B5563',
+        // Panel layout shows AdminLoadingIndicator instead (config: admin.ui.loading_delay_ms).
+        delay: 99999,
+        showSpinner: false,
+        includeCSS: false,
     },
 });

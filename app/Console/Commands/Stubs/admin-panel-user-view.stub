@@ -1,6 +1,6 @@
 <?php
 
-namespace {{ namespace }};
+namespace App\AdminPanel\Pages\{{ panelStudly }};
 
 use App\AdminPanel\Engine\BasePage;
 use App\AdminPanel\Schema\Button;
@@ -10,15 +10,15 @@ use App\AdminPanel\Schema\Heading;
 use App\AdminPanel\Schema\KeyValue;
 use App\AdminPanel\Schema\Space;
 use App\AdminPanel\Schema\Text;
-use {{ modelFqcn }};
+use App\Models\User;
 
-class {{ class }} extends BasePage
+class UserViewPage extends BasePage
 {
-    public function __construct(protected {{ modelClass }} ${{ modelVar }}) {}
+    public function __construct(protected User $user) {}
 
     public function title(): ?string
     {
-        return $this->{{ modelVar }}->name ?? '{{ titleSingular }}';
+        return $this->user->name ?? 'User';
     }
 
     public function authorize(): bool
@@ -28,7 +28,7 @@ class {{ class }} extends BasePage
 
     public function schema(): array
     {
-        $record = $this->{{ modelVar }};
+        $record = $this->user;
 
         return [
             Flex::make()
@@ -42,17 +42,17 @@ class {{ class }} extends BasePage
                         ->align('start')
                         ->gap(1)
                         ->schema([
-                            Heading::make($record->name ?? '{{ titleSingular }}')->level(1),
-                            Text::make('View details for this {{ titleSingular }}.')
+                            Heading::make($record->name ?? 'User')->level(1),
+                            Text::make('View account details for this user.')
                                 ->variant('subdued'),
                         ]),
                     Flex::make()->gap(2)->schema([
                         Button::make('Edit')
                             ->variant('outline')
-                            ->url(admin_path('{{ key }}/'.$record->getKey().'/edit')),
+                            ->url(admin_path('users/'.$record->getKey().'/edit')),
                         Button::make('Back')
                             ->variant('secondary')
-                            ->url(admin_path('{{ key }}')),
+                            ->url(admin_path('users')),
                     ]),
                 ]),
 
@@ -61,11 +61,14 @@ class {{ class }} extends BasePage
             Card::make()
                 ->border()
                 ->label('Details')
-                ->helpText('Read-only snapshot of this record.')
+                ->helpText('Read-only snapshot of this user record.')
                 ->schema([
                     KeyValue::make()->entries([
                         'ID' => $record->getKey(),
                         'Name' => $record->name ?? '—',
+                        'Email' => $record->email ?? '—',
+                        'Admin' => $record->is_admin ? 'Yes' : 'No',
+                        'Default panel' => $record->default_panel ?: '—',
                         'Created' => $record->created_at?->format('M d, Y H:i') ?? '—',
                     ]),
                 ]),

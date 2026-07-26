@@ -39,8 +39,15 @@ class HandleInertiaRequests extends Middleware
     {
         $key = $request->attributes->get('admin.panel')
             ?? (app()->bound('admin.panel') ? app('admin.panel') : null)
-            ?? $this->detectPanelKey($request)
-            ?? config('admin.default', 'admin');
+            ?? $this->detectPanelKey($request);
+
+        if (! is_string($key) || $key === '') {
+            try {
+                $key = PanelRegistry::default()->getId();
+            } catch (\Throwable) {
+                $key = 'admin';
+            }
+        }
 
         app()->instance('admin.panel', $key);
 
@@ -49,7 +56,7 @@ class HandleInertiaRequests extends Middleware
         if (! PanelRegistry::has($key)) {
             return [
                 'key' => $key,
-                'name' => config('admin.name', 'Admin Panel'),
+                'name' => 'Admin Panel',
                 'prefix' => admin_prefix($key),
                 'path' => admin_path('', $key),
                 'logo_url' => null,
@@ -60,6 +67,7 @@ class HandleInertiaRequests extends Middleware
                 'languages' => admin_languages(),
                 'menu' => [],
                 'panels' => $showMenu ? $this->sharePanelsList($key) : [],
+                'loading_delay_ms' => (int) config('admin.ui.loading_delay_ms', 200),
             ];
         }
 
@@ -78,6 +86,7 @@ class HandleInertiaRequests extends Middleware
             'languages' => admin_languages(),
             'menu' => $showMenu ? admin_menu($key) : [],
             'panels' => $showMenu ? $this->sharePanelsList($key) : [],
+            'loading_delay_ms' => (int) config('admin.ui.loading_delay_ms', 200),
         ];
     }
 

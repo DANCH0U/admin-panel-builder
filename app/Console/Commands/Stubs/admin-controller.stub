@@ -14,15 +14,12 @@ class {{ class }} extends Controller
 {
     public function index(Request $request, DataGridEngine $engine)
     {
-        $data = $engine->handle(new {{ resourceClass }}(), $request);
+        $resource = new {{ resourceClass }}();
 
-        return Inertia::render('Admin/ResourceIndex', [
-            'resource' => $data,
-            'title' => '{{ title }}',
-            'description' => null,
-            'createUrl' => {{ createUrl }},
-            'createLabel' => {{ createLabel }},
-        ]);
+        return Inertia::render(
+            'Admin/ResourceIndex',
+            $resource->toIndexProps($engine->handle($resource, $request)),
+        );
     }
 
     public function bulk(Request $request, DataGridEngine $engine)

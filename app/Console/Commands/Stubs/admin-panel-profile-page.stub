@@ -1,6 +1,6 @@
 <?php
 
-namespace App\AdminPanel\Pages;
+namespace App\AdminPanel\Pages\{{ panelStudly }};
 
 use App\AdminPanel\Engine\BasePage;
 use App\AdminPanel\Schema\Button;
@@ -8,6 +8,8 @@ use App\AdminPanel\Schema\Card;
 use App\AdminPanel\Schema\Flex;
 use App\AdminPanel\Schema\Form;
 use App\AdminPanel\Schema\Grid;
+use App\AdminPanel\Schema\Heading;
+use App\AdminPanel\Schema\Space;
 use App\AdminPanel\Schema\Text;
 use App\AdminPanel\Schema\TextInput;
 use App\Models\User;
@@ -29,13 +31,26 @@ class ProfilePage extends BasePage
     public function schema(): array
     {
         return [
+            Flex::make()
+                ->direction('column')
+                ->align('start')
+                ->gap(1)
+                ->schema([
+                    Heading::make('Profile')->level(1),
+                    Text::make('Update your account details or permanently delete your account.')
+                        ->variant('subdued'),
+                ]),
+
+            Space::make(6),
+
             Form::make()
                 ->action(admin_path('profile'))
                 ->method('POST')
                 ->schema([
-                    Card::make()->border()
+                    Card::make()
+                        ->border()
                         ->label('Account')
-                        ->helpText('Update your name, email, and password.')
+                        ->helpText('Your name, email, and optional password change.')
                         ->schema([
                             Grid::make(2)->schema([
                                 TextInput::make('name')
@@ -46,8 +61,10 @@ class ProfilePage extends BasePage
                                     ->email()
                                     ->required(),
                             ]),
+                            Space::make(4),
                             Text::make('Leave password blank to keep your current password.')
                                 ->variant('caption'),
+                            Space::make(2),
                             Grid::make(2)->schema([
                                 TextInput::make('password')
                                     ->label('New password')
@@ -59,32 +76,38 @@ class ProfilePage extends BasePage
                                     ->placeholder('••••••••'),
                             ]),
                         ]),
-                    Flex::make()->justify('end')->schema([
+                    Space::make(4),
+                    Flex::make()->justify('end')->sticky()->schema([
                         Button::make('Save profile')->submit(),
                     ]),
                 ]),
+
+            Space::make(8),
 
             Form::make()
                 ->action(admin_path('profile'))
                 ->method('DELETE')
                 ->schema([
-                    Card::make()->border()
+                    Card::make()
+                        ->border()
                         ->label('Delete account')
                         ->helpText('Permanently remove your account and all associated data. This cannot be undone.')
                         ->schema([
                             Text::make('Enter your current password to confirm account deletion.')
                                 ->variant('subdued'),
+                            Space::make(4),
                             TextInput::make('password')
                                 ->label('Current password')
                                 ->password()
                                 ->required()
                                 ->placeholder('••••••••'),
-                            Flex::make()->justify('end')->schema([
-                                Button::make('Delete account')
-                                    ->variant('destructive')
-                                    ->submit(),
-                            ]),
                         ]),
+                    Space::make(4),
+                    Flex::make()->justify('end')->sticky()->schema([
+                        Button::make('Delete account')
+                            ->variant('destructive')
+                            ->submit(),
+                    ]),
                 ]),
         ];
     }

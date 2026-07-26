@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers\{{ panelStudly }};
 
 use App\AdminPanel\Notifications\Notify;
-use App\AdminPanel\Pages\ProfilePage;
+use App\AdminPanel\Pages\{{ panelStudly }}\ProfilePage;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -31,14 +31,14 @@ class ProfileController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:120'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $user->id],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$user->id],
             'password' => ['nullable', 'confirmed', Password::defaults()],
         ]);
 
         $user->name = $validated['name'];
         $user->email = $validated['email'];
 
-        if (!empty($validated['password'])) {
+        if (! empty($validated['password'])) {
             $user->password = Hash::make($validated['password']);
         }
 
@@ -57,7 +57,7 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
-        if (!Hash::check($request->input('password'), $user->password)) {
+        if (! Hash::check($request->input('password'), $user->password)) {
             throw ValidationException::withMessages([
                 'password' => ['The password is incorrect.'],
             ]);

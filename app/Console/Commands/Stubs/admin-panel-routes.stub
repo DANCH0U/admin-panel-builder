@@ -1,6 +1,8 @@
 <?php
 
-use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\{{ panelStudly }}\DashboardController;
+use App\Http\Controllers\{{ panelStudly }}\ProfileController;
+use App\Http\Controllers\{{ panelStudly }}\UserController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -8,15 +10,15 @@ use Illuminate\Support\Facades\Route;
 | {{ title }} panel (`{{ panel }}`) routes
 |--------------------------------------------------------------------------
 |
-| Prefix and middleware come from PanelRegistry (AdminPanelProvider).
+| Scaffolded by make:admin-panel — dashboard, profile, and users CRUD.
 |
 */
 
 Route::get('/', DashboardController::class)->name('{{ panel }}.dashboard');
 
-Route::get('/profile', [\App\Http\Controllers\Admin\ProfileController::class, 'edit'])
-    ->name('{{ panel }}.profile.edit');
-Route::post('/profile', [\App\Http\Controllers\Admin\ProfileController::class, 'update'])
-    ->name('{{ panel }}.profile.update');
-Route::delete('/profile', [\App\Http\Controllers\Admin\ProfileController::class, 'destroy'])
-    ->name('{{ panel }}.profile.destroy');
+Route::get('/profile', [ProfileController::class, 'edit'])->name('{{ panel }}.profile.edit');
+Route::post('/profile', [ProfileController::class, 'update'])->name('{{ panel }}.profile.update');
+Route::delete('/profile', [ProfileController::class, 'destroy'])->name('{{ panel }}.profile.destroy');
+
+Route::post('/users/bulk', [UserController::class, 'bulk'])->name('{{ panel }}.users.bulk');
+Route::resource('users', UserController::class)->names('{{ panel }}.users');

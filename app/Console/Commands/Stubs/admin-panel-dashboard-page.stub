@@ -1,0 +1,77 @@
+<?php
+
+namespace App\AdminPanel\Pages\{{ panelStudly }};
+
+use App\AdminPanel\Engine\BasePage;
+use App\AdminPanel\Schema\Card;
+use App\AdminPanel\Schema\Chart;
+use App\AdminPanel\Schema\Flex;
+use App\AdminPanel\Schema\Grid;
+use App\AdminPanel\Schema\Heading;
+use App\AdminPanel\Schema\Space;
+use App\AdminPanel\Schema\Text;
+use App\Models\User;
+
+class DashboardPage extends BasePage
+{
+    public function title(): ?string
+    {
+        return 'Dashboard';
+    }
+
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    public function schema(): array
+    {
+        $userCount = User::query()->count();
+        $adminCount = User::query()->where('is_admin', true)->count();
+        $memberCount = max(0, $userCount - $adminCount);
+
+        return [
+            Flex::make()
+                ->direction('column')
+                ->align('start')
+                ->gap(1)
+                ->schema([
+                    Heading::make('Dashboard')->level(1),
+                    Text::make('Overview of your panel — charts, counts, and quick tips.')
+                        ->variant('subdued'),
+                ]),
+
+            Space::make(6),
+
+            Grid::make(2)->schema([
+                Chart::make()
+                    ->border()
+                    ->label('Users this week')
+                    ->helpText('Sample series — replace with your query data.')
+                    ->type('area')
+                    ->height(280)
+                    ->categories(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])
+                    ->series([
+                        ['name' => 'Signups', 'data' => [4, 7, 5, 12, 9, 6, 11]],
+                    ]),
+
+                Chart::make()
+                    ->border()
+                    ->label('User roles')
+                    ->helpText("Live counts from the users table ({$userCount} total).")
+                    ->type('donut')
+                    ->height(280)
+                    ->labels(['Admins', 'Users'])
+                    ->series([$adminCount, $memberCount]),
+            ]),
+
+            Space::make(6),
+
+            Card::make()->border()->label('Quick tip')->helpText('Schema-driven charts')->schema([
+                Text::make(
+                    'Use Chart::make() on any page. Pass ->series() and ->categories() / ->labels(), or ->api(\'/your/json\') to load data with a loading spinner.',
+                )->variant('body'),
+            ]),
+        ];
+    }
+}

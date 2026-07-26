@@ -120,6 +120,7 @@ Flex::make()
     ->direction('row')    // row | column
     ->gap(2)
     ->wrap()
+    ->sticky()            // floating action bar on mobile (md+ = normal flex)
     ->schema([…]);
 ```
 
@@ -166,6 +167,49 @@ KeyValue::make()->label('Details')->entries([
 ]);
 ```
 
+### `Chart`
+
+ApexCharts via `vue3-apexcharts`. Use on dashboards / report pages.
+
+```php
+use App\AdminPanel\Schema\Chart;
+
+Chart::make()
+    ->border()
+    ->label('Signups')
+    ->type('area') // area | line | bar | pie | donut | …
+    ->height(280)
+    ->categories(['Mon', 'Tue', 'Wed'])
+    ->series([['name' => 'Users', 'data' => [4, 7, 5]]]);
+
+Chart::make()
+    ->type('donut')
+    ->labels(['Admin', 'User'])
+    ->series([12, 88])
+    ->options([/* raw ApexCharts options */]);
+
+// Async data — chart shows a loading spinner until the GET returns
+Chart::make()
+    ->type('area')
+    ->api('/admin/api/signups');
+```
+
+API response: `{ "series": [...], "categories"?: [...], "labels"?: [...], "colors"?: [...], "options"?: {...} }` (or the same under `data`).
+
+Vue node: `SchemaChart.vue` (`type: chart`). Colors default to CSS theme tokens (`--primary`, `--chart-*`).
+
+### `Space`
+
+Vertical spacer (Tailwind height scale).
+
+```php
+use App\AdminPanel\Schema\Space;
+
+Space::make();     // default size 4 → h-4
+Space::make(8);    // h-8
+Space::make()->size(12);
+```
+
 ### `Image`
 
 Dedicated image block. Storage paths become public URLs via `FileUploadService`.
@@ -176,7 +220,7 @@ Image::make($record->image)->label('Cover')->rounded();
 
 ### `Button`
 
-Submit or navigate.
+Defaults to `type="button"` (no accidental submit). Call `->submit()` for form submit.
 
 ```php
 Button::make('Save')->submit();
@@ -187,12 +231,12 @@ Button::make('Go back')->back(); // browser history
 
 | Method | Notes |
 |--------|--------|
-| `->submit()` | `type="submit"` inside a `Form` |
+| `->submit()` | Sets `type="submit"` inside a `Form` (required for save) |
+| `->type('button'\|'submit'\|'reset')` | Explicit HTML button type (default is `button`) |
 | `->url($path)` | Inertia visit |
 | `->back()` | `history.back()` |
 | `->variant('primary'\|'secondary'\|'outline'\|'destructive'\|'ghost'\|…)` | shadcn variants |
 | `->icon('…')` | Optional icon name (passed to UI) |
-| `->type('button'\|'submit')` | Native button type |
 
 **View page pattern** (header + card + image):
 
@@ -348,6 +392,8 @@ JsonCodeInput::make('payload')->label('Payload')->placeholder('{}');
 | `Image` | `ui-image` | Image block |
 | `Button` | `ui-button` | Action |
 | `KeyValue` | `key-value` | Read-only pairs |
+| `Chart` | `chart` | ApexCharts chart |
+| `Space` | `space` | Vertical spacer |
 | `TextInput` | `text-input` | Text field |
 | `Textarea` | `textarea` | Multiline |
 | `NumberInput` | `number-input` | Number |
@@ -435,13 +481,39 @@ return Inertia::render('Admin/SchemaPage', $page->toInertia([
 
 **Resource index**
 
+Define `title()` + `header()` on the resource (schema renderer above the table). Controllers use `toIndexProps()`:
+
 ```php
-return Inertia::render('Admin/ResourceIndex', [
-    'resource' => $engine->handle(new PostResource(), $request),
-    'title' => 'Posts',
-    'createUrl' => admin_path('posts/create'),
-    'createLabel' => 'Add Post',
-]);
+$resource = new PostResource();
+
+return Inertia::render(
+    'Admin/ResourceIndex',
+    $resource->toIndexProps($engine->handle($resource, $request)),
+);
+```
+
+```php
+public function title(): ?string
+{
+    return 'Posts';
+}
+
+public function header(): array
+{
+    return [
+        Flex::make()->justify('between')->align('end')->wrap()->schema([
+            Flex::make()->direction('column')->align('start')->gap(1)->schema([
+                Heading::make('Posts')->level(1),
+                Text::make('Manage posts.')->variant('subdued'),
+            ]),
+            Flex::make()->gap(2)->schema([
+                Button::make('Add post')->url(admin_path('posts/create')),
+                // Button::make('Export')->variant('outline')->url(...),
+                // Card::make()->border()->schema([…]), // stats, etc.
+            ]),
+        ]),
+    ];
+}
 ```
 
 Always call `authorize()` / `authorizeOrFail()` on pages and resources.

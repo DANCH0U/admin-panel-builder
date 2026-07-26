@@ -1,0 +1,17 @@
+<?php
+
+namespace App\Http\Controllers\{{ panelStudly }};
+
+use App\AdminPanel\Pages\{{ panelStudly }}\DashboardPage;
+use App\Http\Controllers\Controller;
+use Inertia\Inertia;
+
+class DashboardController extends Controller
+{
+    public function __invoke()
+    {
+        $page = new DashboardPage();
+
+        return Inertia::render('Admin/SchemaPage', $page->toInertia());
+    }
+}

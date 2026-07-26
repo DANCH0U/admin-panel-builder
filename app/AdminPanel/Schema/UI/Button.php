@@ -8,7 +8,7 @@ class Button extends Component
 {
     protected string $variant = 'primary';
     protected string $icon = '';
-    protected string $type_attr = 'submit';
+    protected string $type_attr = 'button';
     protected string $url = '';
     protected bool $is_back = false;
 

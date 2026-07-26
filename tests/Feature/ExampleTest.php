@@ -1,7 +1,7 @@
 <?php
 
-test('home redirects to admin', function () {
+test('home page is available', function () {
     $response = $this->get(route('home'));
 
-    $response->assertRedirect(admin_path());
+    $response->assertOk();
 });
