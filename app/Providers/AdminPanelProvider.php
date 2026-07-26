@@ -17,8 +17,7 @@ class AdminPanelProvider extends ServiceProvider
      * @var list<class-string<\App\AdminPanel\Panel>>
      */
     protected array $panels = [
-        AdminPanel::class,
-        VendorPanel::class,
+        
     ];
 
     public function register(): void
