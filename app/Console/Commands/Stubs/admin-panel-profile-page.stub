@@ -77,8 +77,8 @@ class ProfilePage extends BasePage
                             ]),
                         ]),
                     Space::make(4),
-                    Flex::make()->justify('end')->sticky()->schema([
-                        Button::make('Save profile')->submit(),
+                    Flex::make()->justify('end')->schema([
+                        Button::make('Save profile')->submit()->showOnBottomBar(),
                     ]),
                 ]),
 
@@ -103,10 +103,11 @@ class ProfilePage extends BasePage
                                 ->placeholder('••••••••'),
                         ]),
                     Space::make(4),
-                    Flex::make()->justify('end')->sticky()->schema([
+                    Flex::make()->justify('end')->schema([
                         Button::make('Delete account')
                             ->variant('destructive')
-                            ->submit(),
+                            ->submit()
+                            ->showOnBottomBar(),
                     ]),
                 ]),
         ];

@@ -52,7 +52,7 @@ class Flex extends Component
     }
 
     /**
-     * Floating action bar on mobile; normal flex layout from md up.
+     * @deprecated No-op. Use Button::showOnBottomBar() for mobile action bars.
      */
     public function sticky(bool $sticky = true): static
     {

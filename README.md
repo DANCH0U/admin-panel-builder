@@ -51,7 +51,7 @@ This scaffolds a **complete starter panel** and registers it in `app/Providers/A
 | `…/Pages/Admin/UserFormPage.php` / `UserViewPage.php` | Create / edit / view |
 | `…/Http/Controllers/Admin/UserController.php` | Users CRUD |
 
-Every generated page includes a **heading + description**, cards, and spacing (`Space` / sticky mobile actions).
+Every generated page includes a **heading + description**, cards, and spacing (`Space` / optional mobile bottom-bar actions).
 
 Optional — lock the panel to `is_admin` users:
 
@@ -544,7 +544,8 @@ Toolbar **Filters** and **Columns** controls are icon-only. Image columns resolv
 | `Toggle` | `Toggle::make('featured')->label('Featured')` |
 | `Checkbox` | `Checkbox::make('agree')` |
 | `DateTimeInput` | `DateTimeInput::make('published_at')->withTime()` |
-| `MultiSelect` | `MultiSelect::make('tags')->options([...])` |
+| `MultiSelect` | `MultiSelect::make('categories')->options([...])` |
+| `TagsInput` | `TagsInput::make('tags')->suggestions(['news', 'product'])->max(12)` |
 
 ### Useful columns (DataGrid)
 
@@ -562,7 +563,7 @@ Layout helpers for forms: `Card`, `Grid`, `Flex`, `Section`, `Tabs`.
 
 View helpers: `Heading`, `Text`, `KeyValue`, `Chart`, `Space`, `Image::make($path)->label('Cover')` (resolves storage paths to public URLs).
 
-Form action bars on mobile: `Flex::make()->justify('end')->sticky()->schema([…])` — floats at the bottom on small screens.
+Mobile bottom actions (opt-in): `Button::make('Save')->submit()->showOnBottomBar()` — on small screens the button moves into a fixed bottom bar and is removed from its inline spot. Desktop stays inline.
 
 Buttons default to `type="button"`. Only `->submit()` (or `->type('submit')`) makes them submit the form.
 

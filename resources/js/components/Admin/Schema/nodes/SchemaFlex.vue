@@ -45,14 +45,9 @@ const alignClass = computed(() => {
     };
     return map[String(props.node.align || 'center')] ?? 'items-center';
 });
-
-const sticky = computed(() => Boolean(props.node.sticky));
 </script>
 
 <template>
-    <!-- Spacer so fixed mobile bar doesn't cover content -->
-    <div v-if="sticky" class="h-20 md:hidden" aria-hidden="true" />
-
     <div
         :class="
             cn(
@@ -62,8 +57,6 @@ const sticky = computed(() => Boolean(props.node.sticky));
                 alignClass,
                 node.direction === 'column' ? 'flex-col' : 'flex-row',
                 node.wrap ? 'flex-wrap' : 'flex-nowrap',
-                sticky &&
-                    'fixed inset-x-0 bottom-0 z-40 border-t border-border/80 bg-background/95 px-4 py-3 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] backdrop-blur-md md:static md:inset-auto md:z-auto md:border-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none',
             )
         "
     >

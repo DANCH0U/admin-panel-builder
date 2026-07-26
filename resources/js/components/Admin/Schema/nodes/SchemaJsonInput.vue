@@ -144,7 +144,7 @@ function rowErrors(index: number): string | undefined {
                 :key="index"
                 :class="
                     cn(
-                        'overflow-hidden rounded-2xl border bg-card/80 shadow-sm backdrop-blur',
+                        'overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-sm',
                         'ring-1 ring-black/3 dark:ring-white/5',
                     )
                 "

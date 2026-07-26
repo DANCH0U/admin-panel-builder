@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import { Button } from '@/components/ui/button';
 import { useNotifications } from '@/composables/useNotifications';
 import { useFlashNotifications } from '@/composables/useFlashNotifications';
 import { cn } from '@/lib/utils';
-import { router } from '@inertiajs/vue3';
 import {
     CheckCircle2,
     Info,
@@ -42,10 +40,6 @@ const iconTone: Record<string, string> = {
 };
 
 const visible = computed(() => notifications.value);
-
-function runAction(href?: string | null) {
-    if (href) router.visit(href);
-}
 </script>
 
 <template>
@@ -79,16 +73,6 @@ function runAction(href?: string | null) {
                 <div class="min-w-0 flex-1 space-y-1">
                     <p v-if="n.title" class="text-sm font-semibold leading-tight">{{ n.title }}</p>
                     <p class="text-sm leading-snug opacity-90">{{ n.message }}</p>
-                    <Button
-                        v-if="n.action?.label"
-                        type="button"
-                        size="sm"
-                        variant="secondary"
-                        class="mt-1 h-8 rounded-lg"
-                        @click="runAction(n.action.href)"
-                    >
-                        {{ n.action.label }}
-                    </Button>
                 </div>
                 <button
                     type="button"

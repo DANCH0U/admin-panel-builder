@@ -355,7 +355,7 @@ function setLocale(code: string) {
                 <Button
                     variant="outline"
                     size="icon-sm"
-                    class="fixed start-4 top-4 z-30 rounded-xl shadow-sm lg:hidden"
+                    class="fixed start-4 bottom-4 z-30 rounded-xl shadow-sm lg:hidden"
                     @click="admin.sideBarOpen = !admin.sideBarOpen"
                 >
                     <Menu class="size-4" />
@@ -366,6 +366,12 @@ function setLocale(code: string) {
                         <slot />
                     </div>
                 </main>
+
+                <!-- Target for Button::showOnBottomBar() (mobile only) -->
+                <div
+                    id="admin-mobile-bottom-bar"
+                    class="fixed inset-x-0 bottom-0 z-40 hidden max-md:has-[button]:flex flex-wrap items-center justify-end gap-2 border-t border-border/80 bg-background/95 py-3 pe-4 ps-16 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] backdrop-blur-md"
+                />
             </div>
         </div>
     </div>

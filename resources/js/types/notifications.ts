@@ -1,15 +1,9 @@
 export type NotificationType = 'success' | 'info' | 'warning' | 'danger';
 
-export interface NotificationAction {
-    label: string;
-    href?: string | null;
-}
-
 export interface SharedNotification {
     type: string;
     message: string;
     title?: string;
-    action?: NotificationAction;
     duration?: number;
 }
 
@@ -18,13 +12,11 @@ export interface Notification {
     type: NotificationType;
     message: string;
     title?: string;
-    action?: NotificationAction;
 }
 
 export interface AddNotificationOptions {
     duration?: number;
     title?: string;
-    action?: NotificationAction;
 }
 
 export function normalizeNotificationType(type: string): NotificationType {
@@ -47,7 +39,7 @@ export function normalizeNotificationType(type: string): NotificationType {
 
 export function parseFlashPayload(
     payload: unknown,
-): { message: string; title?: string; action?: NotificationAction; duration?: number } | null {
+): { message: string; title?: string; duration?: number } | null {
     if (!payload) {
         return null;
     }
@@ -66,7 +58,6 @@ export function parseFlashPayload(
         return {
             message: data.message,
             title: data.title,
-            action: data.action,
             duration: data.duration,
         };
     }

@@ -1,7 +1,6 @@
 import {
     type AddNotificationOptions,
     type Notification,
-    type NotificationAction,
     type NotificationType,
     normalizeNotificationType,
 } from '@/types/notifications';
@@ -28,15 +27,13 @@ export const useNotificationsStore = defineStore('notifications', () => {
         }
 
         const id = ++nextId;
-        const hasAction = Boolean(options.action?.label);
-        const duration = options.duration ?? (hasAction ? 8000 : 4500);
+        const duration = options.duration ?? 4500;
 
         notifications.value.push({
             id,
             type: normalizedType,
             message,
             title: options.title,
-            action: options.action,
         });
 
         if (duration > 0) {
@@ -78,4 +75,4 @@ export const useNotificationsStore = defineStore('notifications', () => {
     };
 });
 
-export type { NotificationAction, NotificationType };
+export type { NotificationType };

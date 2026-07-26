@@ -6,7 +6,6 @@ namespace App\AdminPanel\Notifications;
  * Queue toast notifications into the session for Inertia shared data.
  *
  * Notify::success('Saved');
- * Notify::success('Saved')->action('View', admin_path('tests'));
  * Notify::danger('Failed')->title('Delete')->duration(8000);
  *
  * Legacy still works: return back()->with('success', 'Saved');
@@ -18,8 +17,6 @@ class Notify
     protected string $message = '';
 
     protected ?string $title = null;
-
-    protected ?array $action = null;
 
     protected ?int $duration = null;
 
@@ -68,16 +65,6 @@ class Notify
         return $this->send();
     }
 
-    public function action(string $label, ?string $href = null): static
-    {
-        $this->action = array_filter([
-            'label' => $label,
-            'href' => $href,
-        ], fn ($v) => $v !== null && $v !== '');
-
-        return $this->send();
-    }
-
     public function duration(int $ms): static
     {
         $this->duration = $ms;
@@ -117,7 +104,6 @@ class Notify
             'type' => $this->type,
             'message' => $this->message,
             'title' => $this->title,
-            'action' => $this->action,
             'duration' => $this->duration,
         ], fn ($v) => $v !== null && $v !== []);
     }

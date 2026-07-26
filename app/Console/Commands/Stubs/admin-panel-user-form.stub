@@ -91,9 +91,9 @@ class UserFormPage extends BasePage
                                 ->label('Admin access'),
                         ]),
                     Space::make(4),
-                    Flex::make()->justify('end')->sticky()->schema([
-                        Button::make('Cancel')->variant('secondary')->back(),
-                        Button::make('Save')->variant('primary')->submit(),
+                    Flex::make()->justify('end')->schema([
+                        Button::make('Cancel')->variant('secondary')->back()->showOnBottomBar(),
+                        Button::make('Save')->variant('primary')->submit()->showOnBottomBar(),
                     ]),
                 ]),
         ];

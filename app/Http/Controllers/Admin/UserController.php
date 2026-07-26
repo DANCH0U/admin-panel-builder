@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Http\Controllers\{{ panelStudly }};
+namespace App\Http\Controllers\Admin;
 
 use App\AdminPanel\Engine\DataGridEngine;
 use App\AdminPanel\Notifications\Notify;
-use App\AdminPanel\Pages\{{ panelStudly }}\UserFormPage;
-use App\AdminPanel\Pages\{{ panelStudly }}\UserViewPage;
-use App\AdminPanel\Resources\{{ panelStudly }}\UserResource;
+use App\AdminPanel\Pages\Admin\UserFormPage;
+use App\AdminPanel\Pages\Admin\UserViewPage;
+use App\AdminPanel\Resources\Admin\UserResource;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -50,7 +50,7 @@ class UserController extends Controller
         User::create($validated);
         Notify::success('User created.');
 
-        return redirect()->route('{{ panel }}.users.index');
+        return redirect()->route('admin.users.index');
     }
 
     public function show(User $user)
@@ -80,7 +80,7 @@ class UserController extends Controller
         $user->update($validated);
         Notify::success('User updated.');
 
-        return redirect()->route('{{ panel }}.users.show', $user);
+        return redirect()->route('admin.users.show', $user);
     }
 
     public function destroy(User $user)

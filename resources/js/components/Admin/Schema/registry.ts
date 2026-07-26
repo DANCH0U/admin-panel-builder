@@ -19,6 +19,7 @@ import SchemaSection from './nodes/SchemaSection.vue';
 import SchemaSelect from './nodes/SchemaSelect.vue';
 import SchemaSpace from './nodes/SchemaSpace.vue';
 import SchemaTabs from './nodes/SchemaTabs.vue';
+import SchemaTagsInput from './nodes/SchemaTagsInput.vue';
 import SchemaText from './nodes/SchemaText.vue';
 import SchemaTextarea from './nodes/SchemaTextarea.vue';
 import SchemaTextInput from './nodes/SchemaTextInput.vue';
@@ -50,6 +51,7 @@ const registry: Record<string, Component> = {
     'select-input': SchemaSelect,
     'multi-select': SchemaMultiSelect,
     'list-input': SchemaListInput,
+    'tags-input': SchemaTagsInput,
     'json-input': SchemaJsonInput,
     'json-code': SchemaJsonCode,
     'file-input': SchemaFileInput,

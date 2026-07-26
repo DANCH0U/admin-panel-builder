@@ -2,34 +2,51 @@
 import type { SchemaNodeProps } from '../types';
 import { cn } from '@/lib/utils';
 import { useForm, usePage } from '@inertiajs/vue3';
-import { collectDefaults, provideSduiForm } from '../types';
+import {
+    collectDefaults,
+    pickFormErrors,
+    pickFormInitialData,
+    provideSduiForm,
+} from '../types';
 import SchemaRenderer from '../SchemaRenderer.vue';
-import { watch } from 'vue';
+import { useId, watch } from 'vue';
 
 const props = defineProps<SchemaNodeProps>();
 const page = usePage();
+const formId = useId();
 
 const defaults = collectDefaults(props.node.schema ?? []);
 const method = String(props.node.method || 'POST').toUpperCase();
-const mergeInitial = method !== 'DELETE' ? (props.initialData ?? {}) : {};
+
+// Only this form's fields — never merge the whole page initialData bag.
+const formData =
+    method === 'DELETE'
+        ? { ...defaults }
+        : pickFormInitialData(defaults, props.initialData ?? {});
+
+const fieldKeys = Object.keys(formData);
 
 const form =
     props.form && typeof (props.form as any).post === 'function'
         ? props.form
-        : useForm({
-              ...defaults,
-              ...mergeInitial,
-          });
+        : useForm(formData);
 
-provideSduiForm(form);
+provideSduiForm(form, formId);
 
 watch(
     () => (page.props as any).errors as Record<string, string | string[]> | undefined,
     (errors) => {
-        if (!errors || !Object.keys(errors).length) return;
         if (typeof (form as any).setError !== 'function') return;
+
+        const scoped = pickFormErrors(
+            Object.fromEntries(fieldKeys.map((k) => [k, true])),
+            errors ?? null,
+        );
+
         (form as any).clearErrors?.();
-        (form as any).setError(errors);
+        if (Object.keys(scoped).length) {
+            (form as any).setError(scoped);
+        }
     },
     { deep: true, immediate: true },
 );
@@ -41,17 +58,27 @@ function submit() {
     const options = { forceFormData: true };
     // PHP does not parse multipart PUT/PATCH bodies — spoof via POST + _method
     const spoofAsPost = verb === 'put' || verb === 'patch';
+    const allowed = new Set(fieldKeys);
 
     current.transform((data: Record<string, unknown>) => {
-        const next = { ...data };
-        for (const key of Object.keys(current)) {
+        const next: Record<string, unknown> = {};
+
+        for (const key of allowed) {
+            if (key in data) {
+                next[key] = data[key];
+            }
+        }
+
+        for (const key of allowed) {
             if (key.endsWith('_file') && current[key] instanceof File) {
                 next[key] = current[key];
             }
         }
+
         if (spoofAsPost) {
             next._method = verb.toUpperCase();
         }
+
         return next;
     });
 
@@ -67,6 +94,7 @@ function submit() {
 
 <template>
     <form
+        :id="formId"
         :class="cn('space-y-6', node.bordered && 'admin-surface p-4 md:p-6')"
         @submit.prevent="submit"
     >

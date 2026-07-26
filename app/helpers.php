@@ -155,7 +155,7 @@ if (! function_exists('notify')) {
     /**
      * Queue an Inertia toast notification (see App\AdminPanel\Notifications\Notify).
      *
-     * notify('success', 'Saved')->action('View', admin_path('tests'));
+     * notify('success', 'Saved');
      */
     function notify(string $type, string $message): \App\AdminPanel\Notifications\Notify
     {

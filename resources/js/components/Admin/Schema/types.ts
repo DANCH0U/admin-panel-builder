@@ -34,19 +34,25 @@ export type SchemaNode = {
 export type InertiaForm = ReturnType<typeof useForm<Record<string, unknown>>>;
 
 export const sduiFormKey: InjectionKey<InertiaForm | Record<string, unknown> | null> = Symbol('sduiForm');
+export const sduiFormIdKey: InjectionKey<string | null> = Symbol('sduiFormId');
 
 export function useSduiForm() {
     return inject(sduiFormKey, null);
 }
 
-export function provideSduiForm(form: InertiaForm | Record<string, unknown>) {
+export function useSduiFormId() {
+    return inject(sduiFormIdKey, null);
+}
+
+export function provideSduiForm(form: InertiaForm | Record<string, unknown>, formId?: string | null) {
     provide(sduiFormKey, form);
+    provide(sduiFormIdKey, formId ?? null);
 }
 
 export function collectDefaults(items: SchemaNode[], bag: Record<string, unknown> = {}) {
     for (const item of items) {
         if (item.name && !(item.name in bag)) {
-            if (item.type === 'multi-select' || item.type === 'list-input') bag[item.name] = [];
+            if (item.type === 'multi-select' || item.type === 'list-input' || item.type === 'tags-input') bag[item.name] = [];
             else if (item.type === 'checkbox' || item.type === 'toggle') bag[item.name] = false;
             else if (item.type === 'json-input') bag[item.name] = [];
             else if (item.type === 'json-code') bag[item.name] = item.placeholder || '{}';
@@ -63,6 +69,45 @@ export function collectDefaults(items: SchemaNode[], bag: Record<string, unknown
         if (item.schema) collectDefaults(item.schema, bag);
     }
     return bag;
+}
+
+/**
+ * Keep each Form independent when a page shares one initialData bag:
+ * only copy keys that belong to this form's schema fields.
+ */
+export function pickFormInitialData(
+    fieldDefaults: Record<string, unknown>,
+    initialData?: Record<string, unknown> | null,
+): Record<string, unknown> {
+    const out: Record<string, unknown> = { ...fieldDefaults };
+    if (!initialData) return out;
+
+    for (const key of Object.keys(fieldDefaults)) {
+        if (Object.prototype.hasOwnProperty.call(initialData, key)) {
+            out[key] = initialData[key];
+        }
+    }
+
+    return out;
+}
+
+/**
+ * Scope Inertia validation errors to fields that exist on this form.
+ */
+export function pickFormErrors(
+    fieldDefaults: Record<string, unknown>,
+    errors?: Record<string, string | string[]> | null,
+): Record<string, string | string[]> {
+    if (!errors) return {};
+
+    const scoped: Record<string, string | string[]> = {};
+    for (const key of Object.keys(fieldDefaults)) {
+        if (key in errors) {
+            scoped[key] = errors[key];
+        }
+    }
+
+    return scoped;
 }
 
 type SchemaCondition = { field: string; value: unknown; operator?: string };

@@ -13,7 +13,7 @@ defineProps<SchemaNodeProps>();
         :class="
             cn(
                 node.bordered
-                    ? 'overflow-hidden rounded-2xl border-border/70 bg-background/50 shadow-none'
+                    ? 'overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-sm'
                     : 'space-y-4',
             )
         "

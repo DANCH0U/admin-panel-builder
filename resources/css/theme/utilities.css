@@ -2,6 +2,6 @@
     /* Card-like surface used by ResourceIndex / bordered schema forms.
        Roundness follows --radius via rounded-2xl (theme radius-2xl). */
     .admin-surface {
-        @apply rounded-2xl border bg-card/90 shadow-sm ring-1 ring-black/3 backdrop-blur-sm dark:ring-white/5;
+        @apply rounded-2xl border border-border bg-card text-card-foreground shadow-sm;
     }
 }

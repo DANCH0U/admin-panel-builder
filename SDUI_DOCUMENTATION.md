@@ -120,7 +120,7 @@ Flex::make()
     ->direction('row')    // row | column
     ->gap(2)
     ->wrap()
-    ->sticky()            // floating action bar on mobile (md+ = normal flex)
+    // ->sticky() is deprecated — use Button::showOnBottomBar() instead
     ->schema([…]);
 ```
 
@@ -223,7 +223,7 @@ Image::make($record->image)->label('Cover')->rounded();
 Defaults to `type="button"` (no accidental submit). Call `->submit()` for form submit.
 
 ```php
-Button::make('Save')->submit();
+Button::make('Save')->submit()->showOnBottomBar();
 Button::make('Edit')->variant('outline')->url(admin_path('posts/'.$id.'/edit'));
 Button::make('Back')->variant('secondary')->url(admin_path('posts'));
 Button::make('Go back')->back(); // browser history
@@ -232,6 +232,7 @@ Button::make('Go back')->back(); // browser history
 | Method | Notes |
 |--------|--------|
 | `->submit()` | Sets `type="submit"` inside a `Form` (required for save) |
+| `->showOnBottomBar()` | Mobile: moves button into fixed bottom bar (removed from inline UI). Desktop unchanged. |
 | `->type('button'\|'submit'\|'reset')` | Explicit HTML button type (default is `button`) |
 | `->url($path)` | Inertia visit |
 | `->back()` | `history.back()` |
@@ -359,6 +360,18 @@ Simple list of strings.
 ListInput::make('keywords')->label('Keywords');
 ```
 
+### `TagsInput`
+
+Freeform chip tags — type and press Enter or comma. Optional suggestions.
+
+```php
+TagsInput::make('tags')
+    ->label('Tags')
+    ->placeholder('Add a tag…')
+    ->suggestions(['news', 'product', 'docs'])
+    ->max(12);
+```
+
 ### `JsonInput`
 
 Structured repeating key/value (or schema-driven) JSON editor UI.
@@ -404,6 +417,7 @@ JsonCodeInput::make('payload')->label('Payload')->placeholder('{}');
 | `DateTimeInput` | `datetime-input` | Date / datetime |
 | `FileInput` | `file-input` | Upload |
 | `ListInput` | `list-input` | String list |
+| `TagsInput` | `tags-input` | Freeform chip tags |
 | `JsonInput` | `json-input` | Structured JSON |
 | `JsonCodeInput` | `json-code` | Raw JSON |
 

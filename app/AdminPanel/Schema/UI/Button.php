@@ -11,6 +11,7 @@ class Button extends Component
     protected string $type_attr = 'button';
     protected string $url = '';
     protected bool $is_back = false;
+    protected bool $showOnBottomBar = false;
 
     protected function getType(): string
     {
@@ -59,6 +60,17 @@ class Button extends Component
         return $this->type('submit');
     }
 
+    /**
+     * On mobile, move this button into the fixed bottom action bar (hidden inline).
+     * Desktop keeps the button in its normal place.
+     */
+    public function showOnBottomBar(bool $show = true): static
+    {
+        $this->showOnBottomBar = $show;
+
+        return $this;
+    }
+
     public function toArray(): array
     {
         return array_merge(parent::toArray(), [
@@ -67,6 +79,7 @@ class Button extends Component
             'type_attr' => $this->type_attr,
             'url' => $this->url,
             'is_back' => $this->is_back,
+            'showOnBottomBar' => $this->showOnBottomBar,
         ]);
     }
 }

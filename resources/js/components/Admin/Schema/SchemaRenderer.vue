@@ -43,7 +43,7 @@ function resolve(type: string) {
 </script>
 
 <template>
-    <div :class="cn(props.class ?? 'space-y-5')">
+    <div :class="cn(props.class ?? '')">
         <template v-for="(node, index) in nodes" :key="`${node.type}-${node.name ?? index}`">
             <component
                 :is="resolve(node.type)"

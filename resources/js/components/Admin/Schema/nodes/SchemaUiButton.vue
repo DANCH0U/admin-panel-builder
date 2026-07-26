@@ -1,9 +1,29 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
 import { router } from '@inertiajs/vue3';
-import { buttonVariant, isNodeDisabled, type SchemaNodeProps } from '../types';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { buttonVariant, isNodeDisabled, useSduiFormId, type SchemaNodeProps } from '../types';
 
 const props = defineProps<SchemaNodeProps>();
+const formId = useSduiFormId();
+
+const isMdUp = ref(
+    typeof window !== 'undefined' ? window.matchMedia('(min-width: 768px)').matches : true,
+);
+
+function syncBreakpoint() {
+    isMdUp.value = window.matchMedia('(min-width: 768px)').matches;
+}
+
+onMounted(() => {
+    syncBreakpoint();
+    const mq = window.matchMedia('(min-width: 768px)');
+    mq.addEventListener('change', syncBreakpoint);
+    onUnmounted(() => mq.removeEventListener('change', syncBreakpoint));
+});
+
+const showOnBottomBar = computed(() => Boolean(props.node.showOnBottomBar));
+const teleportToBar = computed(() => showOnBottomBar.value && !isMdUp.value);
 
 function disabled() {
     return isNodeDisabled(props.node, props.form) || Boolean(props.form?.processing);
@@ -17,6 +37,14 @@ function buttonType(): 'button' | 'submit' | 'reset' {
 
 function onClick(event: MouseEvent) {
     if (buttonType() === 'submit') {
+        // Teleported outside <form> — submit only this form by id.
+        if (teleportToBar.value && formId) {
+            event.preventDefault();
+            const el = document.getElementById(formId);
+            if (el instanceof HTMLFormElement) {
+                el.requestSubmit();
+            }
+        }
         return;
     }
 
@@ -31,13 +59,15 @@ function onClick(event: MouseEvent) {
 </script>
 
 <template>
-    <Button
-        :type="buttonType()"
-        :variant="buttonVariant(node.variant) as any"
-        :disabled="disabled()"
-        class="rounded-xl"
-        @click="onClick"
-    >
-        {{ node.label || 'Button' }}
-    </Button>
+    <Teleport to="#admin-mobile-bottom-bar" :disabled="!teleportToBar">
+        <Button
+            :type="buttonType()"
+            :variant="buttonVariant(node.variant) as any"
+            :disabled="disabled()"
+            class="rounded-xl"
+            @click="onClick"
+        >
+            {{ node.label || 'Button' }}
+        </Button>
+    </Teleport>
 </template>

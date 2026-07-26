@@ -18,7 +18,7 @@ class FlashBag
     ];
 
     /**
-     * @return list<array{type: string, message: string, title?: string, action?: array, duration?: int}>
+     * @return list<array{type: string, message: string, title?: string, duration?: int}>
      */
     public static function collect(): array
     {
@@ -52,7 +52,7 @@ class FlashBag
     }
 
     /**
-     * @return array{type: string, message: string, title?: string, action?: array, duration?: int}|null
+     * @return array{type: string, message: string, title?: string, duration?: int}|null
      */
     public static function normalize(mixed $item): ?array
     {
@@ -63,12 +63,12 @@ class FlashBag
             ];
         }
 
-        if (!is_array($item)) {
+        if (! is_array($item)) {
             return null;
         }
 
         $message = $item['message'] ?? null;
-        if (!is_string($message) || $message === '') {
+        if (! is_string($message) || $message === '') {
             return null;
         }
 
@@ -77,15 +77,8 @@ class FlashBag
             'message' => $message,
         ];
 
-        if (!empty($item['title']) && is_string($item['title'])) {
+        if (! empty($item['title']) && is_string($item['title'])) {
             $out['title'] = $item['title'];
-        }
-
-        if (!empty($item['action']) && is_array($item['action']) && !empty($item['action']['label'])) {
-            $out['action'] = [
-                'label' => (string) $item['action']['label'],
-                'href' => isset($item['action']['href']) ? (string) $item['action']['href'] : null,
-            ];
         }
 
         if (isset($item['duration']) && is_numeric($item['duration'])) {

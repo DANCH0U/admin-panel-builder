@@ -10,7 +10,7 @@ let lastSignature = '';
 
 function signature(items: SharedNotification[]): string {
     return items
-        .map((n) => `${n.type}:${n.title ?? ''}:${n.message}:${n.action?.label ?? ''}`)
+        .map((n) => `${n.type}:${n.title ?? ''}:${n.message}`)
         .join('|');
 }
 
@@ -39,7 +39,6 @@ export function useFlashNotifications() {
                 if (!item?.message) return;
                 store.addNotification(normalizeNotificationType(item.type), item.message, {
                     title: item.title,
-                    action: item.action,
                     duration: item.duration,
                 });
             });
