@@ -207,7 +207,7 @@ PHP;
         {$modelClass}::create(\$validated);
         Notify::success('{$base['{{ titleSingular }}']} created.');
 
-        return redirect()->route('{$panelId}.{$base['{{ key }}']}.index');
+        return redirect()->route('{$base['{{ panel }}']}.{$base['{{ key }}']}.index');
     }
 
     public function edit({$modelClass} \${$base['{{ modelVar }}']})
@@ -234,7 +234,7 @@ PHP;
         \${$base['{{ modelVar }}']}->update(\$validated);
         Notify::success('{$base['{{ titleSingular }}']} updated.');
 
-        return redirect()->route('{$panelId}.{$base['{{ key }}']}.index');
+        return redirect()->route('{$base['{{ panel }}']}.{$base['{{ key }}']}.index');
     }
 
     public function destroy({$modelClass} \${$base['{{ modelVar }}']})

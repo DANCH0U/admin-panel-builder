@@ -10,7 +10,16 @@ class AuthController extends Controller
 {
     public function login()
     {
-        return Inertia::render('Admin/Login');
+        return Inertia::render('Admin/Login', [
+            'copy' => [
+                'header' => __('content.login_header'),
+                'description' => __('content.login_description'),
+                'email' => __('content.email'),
+                'password' => __('content.password'),
+                'remember_me' => __('content.remember_me'),
+                'login' => __('content.login'),
+            ],
+        ]);
     }
 
     public function store(Request $request)

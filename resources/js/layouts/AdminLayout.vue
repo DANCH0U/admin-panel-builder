@@ -14,7 +14,6 @@ import NotificationHost from '@/components/Admin/NotificationHost.vue';
 import AdminLoadingIndicator from '@/components/Admin/AdminLoadingIndicator.vue';
 import { useAdminConfig } from '@/composables/useAdminConfig';
 import { useAuth } from '@/composables/useAuth';
-import { useI18n } from '@/composables/useI18n';
 import { useShellData } from '@/composables/useShellData';
 import { useAdminStore } from '@/stores/useAdminStore';
 import { cn } from '@/lib/utils';
@@ -38,7 +37,6 @@ const page = usePage();
 const { menu } = useShellData();
 const admin = useAdminStore();
 const { logout, user } = useAuth();
-const { ta } = useI18n();
 const { adminPath, name: panelName, logoUrl } = useAdminConfig();
 
 const dark = ref(false);
@@ -65,6 +63,7 @@ const languages = computed(
 const panels = computed(
     (): AdminPanelLink[] => (panelProps.value.panels as AdminPanelLink[]) || [],
 );
+const ui = computed(() => (panelProps.value.ui as Record<string, string>) || {});
 
 function fontFamilyName(lang?: AdminLanguage | null): string {
     if (lang?.family) return lang.family;
@@ -146,10 +145,7 @@ function isActive(url?: string): boolean {
 }
 
 function menuLabel(item: any) {
-    const key = item.key || item.title || item.label || item.name;
-    if (!key) return 'Item';
-    const translated = ta(String(key));
-    return translated !== String(key) ? translated : String(item.title || item.label || key);
+    return String(item.title || item.label || item.key || 'Item');
 }
 
 function suffixColor(color?: string) {
@@ -352,7 +348,7 @@ function setLocale(code: string) {
                             <DropdownMenuItem as-child class="cursor-pointer gap-2 rounded-lg">
                                 <Link :href="adminPath('profile')">
                                     <UserRound class="size-4" />
-                                    Profile
+                                    {{ ui.profile }}
                                 </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem
@@ -361,14 +357,14 @@ function setLocale(code: string) {
                             >
                                 <Sun v-if="dark" class="size-4" />
                                 <Moon v-else class="size-4" />
-                                {{ dark ? 'Light' : 'Dark' }}
+                                {{ dark ? ui.light : ui.dark }}
                             </DropdownMenuItem>
                             <template v-if="panels.length">
                                 <DropdownMenuSeparator />
                                 <DropdownMenuLabel class="px-2 py-1.5 text-xs text-muted-foreground">
                                     <span class="inline-flex items-center gap-1.5">
                                         <LayoutGrid class="size-3.5" />
-                                        Panels
+                                        {{ ui.panels }}
                                     </span>
                                 </DropdownMenuLabel>
                                 <DropdownMenuItem
@@ -390,7 +386,7 @@ function setLocale(code: string) {
                             <DropdownMenuLabel class="px-2 py-1.5 text-xs text-muted-foreground">
                                 <span class="inline-flex items-center gap-1.5">
                                     <Languages class="size-3.5" />
-                                    Language
+                                    {{ ui.language }}
                                 </span>
                             </DropdownMenuLabel>
                             <DropdownMenuItem
@@ -411,7 +407,7 @@ function setLocale(code: string) {
                                 @click="logout()"
                             >
                                 <LogOut class="size-4" />
-                                Log out
+                                {{ ui.logout }}
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>

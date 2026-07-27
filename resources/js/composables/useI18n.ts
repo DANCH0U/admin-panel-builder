@@ -2,20 +2,17 @@ import { router, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 
 /**
- * Frontend i18n backed by Inertia-shared translation bags.
- *
- * - `content` is always present
- * - `admin` is present only when auth.user.is_admin is true
- *
- * Helpers:
- * - `t(key)`  → admin bag first (if available), then content
- * - `ta(key)` → admin bag only
- * - `tc(key)` → content bag only
+ * Locale helpers for document lang/dir + cookie.
+ * UI copy is translated on the backend with __('…') — not shared as a JS bag.
  */
 export function useI18n() {
     const page = usePage();
 
-    const serverLocale = computed(() => (page.props.locale as string) || 'en');
+    const serverLocale = computed(() => {
+        const panel = page.props.panel as { locale?: string } | undefined;
+        return panel?.locale || 'en';
+    });
+
     const locale = ref(serverLocale.value);
 
     watch(
@@ -34,73 +31,6 @@ export function useI18n() {
             name + '=' + (value || '') + '; expires=' + date.toUTCString() + '; path=/; SameSite=Lax';
     }
 
-    const translations = computed(
-        () => (page.props.translations as Record<string, Record<string, unknown>>) || {},
-    );
-
-    const hasAdminTranslations = computed(() => Boolean(translations.value.admin));
-
-    function lookup(
-        bag: Record<string, unknown> | undefined,
-        key: string,
-        replacements?: Record<string, any>,
-    ): string | undefined {
-        if (!bag || !key) return undefined;
-
-        const parts = key.split('.');
-        let value: unknown = bag;
-
-        for (const part of parts) {
-            if (value && typeof value === 'object' && part in (value as object)) {
-                value = (value as Record<string, unknown>)[part];
-            } else {
-                return undefined;
-            }
-        }
-
-        if (typeof value !== 'string') {
-            return undefined;
-        }
-
-        let result = value;
-        if (replacements) {
-            Object.entries(replacements).forEach(([k, v]) => {
-                result = result.replace(`:${k}`, String(v));
-            });
-        }
-
-        return result;
-    }
-
-    function t(key: string, replacements?: Record<string, any>): string {
-        if (!key) return '';
-
-        if (key.startsWith('admin.')) {
-            return lookup(translations.value.admin, key.slice(6), replacements) ?? key;
-        }
-        if (key.startsWith('content.')) {
-            return lookup(translations.value.content, key.slice(8), replacements) ?? key;
-        }
-
-        return (
-            lookup(translations.value.admin, key, replacements) ??
-            lookup(translations.value.content, key, replacements) ??
-            key
-        );
-    }
-
-    function ta(key: string, replacements?: Record<string, any>): string {
-        if (!key) return '';
-        const normalized = key.startsWith('admin.') ? key.slice(6) : key;
-        return lookup(translations.value.admin, normalized, replacements) ?? key;
-    }
-
-    function tc(key: string, replacements?: Record<string, any>): string {
-        if (!key) return '';
-        const normalized = key.startsWith('content.') ? key.slice(8) : key;
-        return lookup(translations.value.content, normalized, replacements) ?? key;
-    }
-
     function setLocale() {
         if (!locale.value) return;
 
@@ -117,12 +47,7 @@ export function useI18n() {
     }
 
     return {
-        t,
-        ta,
-        tc,
-        translations,
         locale,
-        hasAdminTranslations,
         changeLocale,
         setLocale,
     };

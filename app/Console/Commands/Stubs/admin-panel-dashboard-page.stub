@@ -75,6 +75,14 @@ class DashboardPage extends BasePage
                     'Use Chart::make() on any page. Pass ->series() and ->categories() / ->labels(), or ->api(\'/your/json\') to load data with a loading spinner.',
                 )->variant('body'),
             ]),
+
+            Space::make(6),
+
+            Card::make()->label('Developer')->schema([
+                Text::make(
+                    'Made by Yahya Osman (@DANCH0U). Check out the repository on GitHub: https://github.com/DANCH0U/admin-panel-builder.',
+                )->variant('body'),
+            ]),
         ];
     }
 }

@@ -637,6 +637,48 @@ API JSON shape (also accepted under a `data` key):
 
 Generated panel dashboards include sample area + donut charts. Vue registration: `vue3-apexcharts` in `resources/js/app.ts`; node: `resources/js/components/Admin/Schema/nodes/SchemaChart.vue`.
 
+### Languages & translations
+
+UI copy lives in the **backend**. Schema pages, menus, notifications, and form labels are already rendered as strings in PHP — do **not** ship translation JSON bags through Inertia.
+
+Use Laravel’s default helper:
+
+```php
+__('admin.dashboard')
+__('content.login')
+```
+
+Add languages in `config/admin.php` (sidebar switcher + fonts):
+
+```php
+'languages' => [
+    [
+        'label' => 'English',
+        'locale' => 'en',
+        'family' => 'Plus Jakarta Sans',
+        'font' => 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:…',
+    ],
+    [
+        'label' => 'Arabic',
+        'locale' => 'ar',
+        'family' => 'Cairo',
+        'font' => 'https://fonts.googleapis.com/css2?family=Cairo:…',
+    ],
+    // Add more locales here…
+],
+'default_locale' => 'en',
+```
+
+Then add matching files under `resources/lang/{locale}/` (e.g. `admin.php`, `content.php`) and wrap strings with `__('…')` in pages, menus, controllers, and stubs. The locale switcher sets `App::setLocale()` via session/cookie; `__()` resolves on the next request.
+
+Example menu title:
+
+```php
+MenuItem::link('posts', admin_path('posts'))
+    ->icon('heroicons:rectangle-stack')
+    ->title(__('admin.posts')),
+```
+
 ### Theme (colors & roundness)
 
 Edit CSS tokens — no Tailwind config file:

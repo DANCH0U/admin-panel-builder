@@ -17,7 +17,10 @@ return [
     | Languages (shared across panels)
     |--------------------------------------------------------------------------
     |
-    | label, locale, font (Google Fonts CSS embed URL).
+    | Register locales available in the sidebar language switcher.
+    | Each entry: label, locale, family, font (Google Fonts CSS URL).
+    | Add matching Laravel lang files under resources/lang/{locale}/ and
+    | translate UI in PHP with __('admin.key') / __('content.key').
     |
     */
     'languages' => [

@@ -52,9 +52,10 @@ class PanelMenu
     {
         if ($this->load_default) {
             $menu = [
-                MenuItem::make('overview')->labelType(),
+                MenuItem::make('overview')->labelType()->title(__('admin.overview')),
                 MenuItem::link('dashboard', admin_path())
-                    ->icon('heroicons:home'),
+                    ->icon('heroicons:home')
+                    ->title(__('admin.dashboard')),
                 ...($this->menu ?? []),
             ];
         } else {

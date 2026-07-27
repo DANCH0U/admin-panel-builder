@@ -4,7 +4,6 @@ namespace App\Http\Middleware;
 
 use App\AdminPanel\Notifications\FlashBag;
 use App\AdminPanel\PanelRegistry;
-use App\Support\CachedTranslations;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -24,7 +23,6 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => fn () => $request->user(),
             ],
-            'translations' => fn () => $this->getTranslations($request),
             'notifications' => fn () => FlashBag::collect(),
             'panel' => fn () => $this->sharePanel($request),
         ];
@@ -63,6 +61,7 @@ class HandleInertiaRequests extends Middleware
                 'locale' => app()->getLocale(),
                 'language' => admin_language(),
                 'languages' => admin_languages(),
+                'ui' => $this->shareUiStrings(),
                 'menu' => [],
                 'panels' => $showMenu ? $this->sharePanelsList($key) : [],
                 'loading_delay_ms' => (int) config('admin.ui.loading_delay_ms', 200),
@@ -80,9 +79,27 @@ class HandleInertiaRequests extends Middleware
             'locale' => app()->getLocale(),
             'language' => admin_language(),
             'languages' => admin_languages(),
+            'ui' => $this->shareUiStrings(),
             'menu' => $showMenu ? admin_menu($key) : [],
             'panels' => $showMenu ? $this->sharePanelsList($key) : [],
             'loading_delay_ms' => (int) config('admin.ui.loading_delay_ms', 200),
+        ];
+    }
+
+    /**
+     * Shell chrome labels — already resolved with __() (not a translation bag).
+     *
+     * @return array<string, string>
+     */
+    protected function shareUiStrings(): array
+    {
+        return [
+            'profile' => __('admin.profile'),
+            'panels' => __('admin.panels'),
+            'language' => __('admin.language'),
+            'logout' => __('admin.logout'),
+            'light' => __('admin.light'),
+            'dark' => __('admin.dark'),
         ];
     }
 
@@ -127,18 +144,4 @@ class HandleInertiaRequests extends Middleware
         return null;
     }
 
-    protected function getTranslations(Request $request): array
-    {
-        $locale = app()->getLocale();
-
-        $translations = [
-            'content' => CachedTranslations::get('content', $locale),
-        ];
-
-        if ($request->user()?->isAdmin()) {
-            $translations['admin'] = CachedTranslations::get('admin', $locale);
-        }
-
-        return $translations;
-    }
 }

@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useI18n } from '@/composables/useI18n';
 import LoginLayout from '@/layouts/LoginLayout.vue';
 import { useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
@@ -11,7 +10,6 @@ import { computed, ref } from 'vue';
 defineOptions({ layout: LoginLayout });
 
 const page = usePage();
-const { tc } = useI18n();
 const remember = ref(true);
 
 const form = useForm({
@@ -21,6 +19,7 @@ const form = useForm({
 });
 
 const appName = computed(() => page.props.panel?.name || 'Admin Panel');
+const copy = computed(() => page.props.copy || {});
 
 const submit = () => {
     form.remember = remember.value ? 1 : 0;
@@ -35,16 +34,16 @@ const submit = () => {
             <div class="space-y-1 text-center">
                 <p class="text-sm text-muted-foreground">{{ appName }}</p>
                 <h1 class="text-2xl font-semibold tracking-tight">
-                    {{ tc('login_header') }}
+                    {{ copy.header }}
                 </h1>
                 <p class="text-sm text-muted-foreground">
-                    {{ tc('login_description') }}
+                    {{ copy.description }}
                 </p>
             </div>
 
             <form class="space-y-4" @submit.prevent="submit">
                 <div class="space-y-2">
-                    <Label for="email">{{ tc('email') }}</Label>
+                    <Label for="email">{{ copy.email }}</Label>
                     <Input
                         id="email"
                         v-model="form.email"
@@ -58,7 +57,7 @@ const submit = () => {
                 </div>
 
                 <div class="space-y-2">
-                    <Label for="password">{{ tc('password') }}</Label>
+                    <Label for="password">{{ copy.password }}</Label>
                     <Input
                         id="password"
                         v-model="form.password"
@@ -74,11 +73,11 @@ const submit = () => {
                         :model-value="remember"
                         @update:model-value="remember = Boolean($event)"
                     />
-                    <Label for="remember">{{ tc('remember_me') }}</Label>
+                    <Label for="remember">{{ copy.remember_me }}</Label>
                 </div>
 
                 <Button class="w-full" type="submit" :disabled="form.processing">
-                    {{ tc('login') }}
+                    {{ copy.login }}
                 </Button>
             </form>
         </div>
