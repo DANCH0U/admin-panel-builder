@@ -8,15 +8,22 @@ use App\AdminPanel\Schema\Component;
  * ApexCharts chart node for schema pages (dashboards, reports).
  *
  * Chart::make()
- *     ->type('area')
+ *     ->type('area') // line | area | bar | column | pie | donut | radialBar
  *     ->height(320)
  *     ->series([['name' => 'Users', 'data' => [10, 20, 15]]])
  *     ->categories(['Mon', 'Tue', 'Wed'])
  *     ->label('Signups')
  *     ->border();
  *
+ * Pie / donut use flat series + labels:
+ * Chart::make()->type('donut')->series([12, 88])->labels(['A', 'B']);
+ *
  * Or load series from an API (JSON: series, categories?, labels?):
  * Chart::make()->type('area')->api('/admin/api/signups');
+ *
+ * Notes:
+ * - `bar` = horizontal bars; `column` = vertical columns (ApexCharts v6).
+ * - Prefer ->options() only for extras; the frontend always supplies safe plotOptions defaults.
  */
 class Chart extends Component
 {

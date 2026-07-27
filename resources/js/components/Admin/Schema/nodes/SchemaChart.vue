@@ -18,10 +18,37 @@ type ChartPayload = {
     options?: Record<string, unknown>;
 };
 
+/** ApexCharts v6 first-class types we support in the schema API. */
+const CHART_TYPES = new Set([
+    'line',
+    'area',
+    'bar',
+    'column',
+    'pie',
+    'donut',
+    'radialBar',
+]);
+
 function cssVar(name: string, fallback: string): string {
     if (typeof window === 'undefined') return fallback;
     const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
     return value || fallback;
+}
+
+/** Drop undefined keys — ApexCharts crashes if plotOptions/xaxis/yaxis are explicitly undefined. */
+function omitUndefined<T extends Record<string, unknown>>(obj: T): T {
+    const out: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj)) {
+        if (value !== undefined) {
+            out[key] = value;
+        }
+    }
+    return out as T;
+}
+
+function normalizeType(raw: unknown): string {
+    const type = String(raw || 'area').trim();
+    return CHART_TYPES.has(type) ? type : 'area';
 }
 
 const apiUrl = computed(() => {
@@ -37,7 +64,7 @@ const liveLabels = ref<string[] | null>(null);
 const liveColors = ref<string[] | null>(null);
 const liveOptions = ref<Record<string, unknown> | null>(null);
 
-const chartType = computed(() => String(props.node.chartType || 'area'));
+const chartType = computed(() => normalizeType(props.node.chartType));
 const height = computed(() => Number(props.node.height || 320));
 const series = computed(() => liveSeries.value ?? (props.node.series as ChartSeries) ?? []);
 const categories = computed(() => liveCategories.value ?? (props.node.categories as string[]) ?? []);
@@ -50,6 +77,7 @@ const colors = computed(() => {
 });
 
 const isPieLike = computed(() => ['pie', 'donut', 'radialBar'].includes(chartType.value));
+const isBarLike = computed(() => ['bar', 'column'].includes(chartType.value));
 
 const options = computed(() => {
     const foreground = cssVar('--foreground', '#1f2937');
@@ -57,24 +85,29 @@ const options = computed(() => {
     const border = cssVar('--border', '#e5e7eb');
     const sparkline = Boolean(props.node.sparkline);
     const toolbar = Boolean(props.node.toolbar);
+    const type = chartType.value;
 
-    const base: Record<string, unknown> = {
+    // Always include line + bar plotOptions — ApexCharts 6 reads them during init
+    // (globalVars / handleUserInputErrors) for every chart type.
+    const base = omitUndefined({
         chart: {
-            type: chartType.value,
+            type,
             toolbar: { show: toolbar },
             fontFamily: 'inherit',
             background: 'transparent',
             sparkline: { enabled: sparkline },
             animations: { enabled: true, speed: 500 },
+            zoom: { enabled: false },
         },
         colors: colors.value,
         dataLabels: { enabled: isPieLike.value && !sparkline },
         stroke: {
             curve: 'smooth',
-            width: isPieLike.value ? 0 : 2,
+            width: isPieLike.value ? 0 : isBarLike.value ? 0 : 2,
+            show: !isPieLike.value,
         },
         fill: {
-            type: chartType.value === 'area' ? 'gradient' : 'solid',
+            type: type === 'area' ? 'gradient' : 'solid',
             gradient: {
                 shadeIntensity: 1,
                 opacityFrom: 0.45,
@@ -95,41 +128,58 @@ const options = computed(() => {
         },
         tooltip: {
             theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
+            shared: !isPieLike.value,
+            intersect: false,
         },
-        xaxis: isPieLike.value
-            ? undefined
-            : {
-                  categories: categories.value,
-                  labels: { style: { colors: muted } },
-                  axisBorder: { color: border },
-                  axisTicks: { color: border },
-              },
-        yaxis: isPieLike.value
-            ? undefined
-            : {
-                  labels: { style: { colors: muted } },
-              },
-        labels: isPieLike.value ? labels.value : undefined,
-        plotOptions: isPieLike.value
+        plotOptions: {
+            line: {
+                isSlopeChart: false,
+            },
+            bar: {
+                horizontal: type === 'bar',
+                borderRadius: 4,
+                columnWidth: '55%',
+                barHeight: '70%',
+            },
+            pie: {
+                donut: {
+                    size: type === 'donut' ? '65%' : '0%',
+                    labels: {
+                        show: type === 'donut',
+                        name: { color: foreground },
+                        value: { color: foreground },
+                        total: { show: type === 'donut', color: muted },
+                    },
+                },
+            },
+        },
+        ...(isPieLike.value
             ? {
-                  pie: {
-                      donut: {
-                          size: chartType.value === 'donut' ? '65%' : '0%',
-                          labels: {
-                              show: chartType.value === 'donut',
-                              name: { color: foreground },
-                              value: { color: foreground },
-                              total: { show: chartType.value === 'donut', color: muted },
-                          },
-                      },
-                  },
+                  labels: labels.value,
               }
-            : undefined,
-    };
+            : {
+                  xaxis: {
+                      categories: categories.value,
+                      labels: { style: { colors: muted } },
+                      axisBorder: { color: border },
+                      axisTicks: { color: border },
+                      tooltip: { enabled: false },
+                      crosshairs: { width: 1 },
+                  },
+                  yaxis: [
+                      {
+                          labels: { style: { colors: muted } },
+                          tooltip: { enabled: false },
+                      },
+                  ],
+              }),
+    });
 
     const nodeOptions = (props.node.options as Record<string, unknown>) ?? {};
     const merged = deepMerge(base, nodeOptions);
-    return liveOptions.value ? deepMerge(merged, liveOptions.value) : merged;
+    const withLive = liveOptions.value ? deepMerge(merged, liveOptions.value) : merged;
+
+    return omitUndefined(withLive);
 });
 
 function deepMerge(
@@ -138,6 +188,9 @@ function deepMerge(
 ): Record<string, unknown> {
     const out: Record<string, unknown> = { ...target };
     for (const [key, value] of Object.entries(source)) {
+        if (value === undefined) {
+            continue;
+        }
         if (
             value &&
             typeof value === 'object' &&
@@ -213,6 +266,9 @@ watch(apiUrl, (url) => {
         void loadFromApi(url);
     }
 });
+
+/** Remount when type changes — ApexCharts does not reliably switch types in place. */
+const chartKey = computed(() => `${chartType.value}-${height.value}-${apiUrl.value ?? 'static'}`);
 </script>
 
 <template>
@@ -252,6 +308,7 @@ watch(apiUrl, (url) => {
 
             <apexchart
                 v-else
+                :key="chartKey"
                 :type="chartType"
                 :height="height"
                 :options="options"

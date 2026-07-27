@@ -585,7 +585,7 @@ public function schema(): array
             Chart::make()
                 ->border()
                 ->label('Signups')
-                ->type('area')          // area | line | bar | pie | donut | …
+                    ->type('area')          // line | area | bar | column | pie | donut | …
                 ->height(280)
                 ->categories(['Mon', 'Tue', 'Wed', 'Thu', 'Fri'])
                 ->series([
@@ -623,7 +623,7 @@ API JSON shape (also accepted under a `data` key):
 
 | Method | Purpose |
 |--------|---------|
-| `->type('area')` | Apex chart type |
+| `->type('area')` | Apex chart type: `line`, `area`, `bar` (horizontal), `column` (vertical), `pie`, `donut`, `radialBar` |
 | `->height(320)` | Chart height in px |
 | `->series([...])` | Line/area/bar: `[['name' => '…', 'data' => […]]]`; pie/donut: `[44, 55]` |
 | `->categories([...])` | X-axis labels (cartesian charts) |
