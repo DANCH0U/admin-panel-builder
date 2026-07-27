@@ -623,7 +623,7 @@ API JSON shape (also accepted under a `data` key):
 
 | Method | Purpose |
 |--------|---------|
-| `->type('area')` | Apex chart type: `line`, `area`, `bar` (horizontal), `column` (vertical), `pie`, `donut`, `radialBar` |
+| `->type('area')` | Apex chart type: `line`, `area`, `bar` (horizontal), `column` (vertical bars), `pie`, `donut`, `radialBar` |
 | `->height(320)` | Chart height in px |
 | `->series([...])` | Line/area/bar: `[['name' => '…', 'data' => […]]]`; pie/donut: `[44, 55]` |
 | `->categories([...])` | X-axis labels (cartesian charts) |

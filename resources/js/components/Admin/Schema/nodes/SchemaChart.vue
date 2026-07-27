@@ -18,7 +18,7 @@ type ChartPayload = {
     options?: Record<string, unknown>;
 };
 
-/** ApexCharts v6 first-class types we support in the schema API. */
+/** Schema chart types (what you pass to Chart::make()->type(...)). */
 const CHART_TYPES = new Set([
     'line',
     'area',
@@ -51,6 +51,16 @@ function normalizeType(raw: unknown): string {
     return CHART_TYPES.has(type) ? type : 'area';
 }
 
+/**
+ * ApexCharts uses chart.type "bar" for both orientations:
+ * - bar    → horizontal
+ * - column → vertical (same bar engine, horizontal: false)
+ */
+function apexType(schemaType: string): string {
+    if (schemaType === 'column') return 'bar';
+    return schemaType;
+}
+
 const apiUrl = computed(() => {
     const value = props.node.api;
     return typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
@@ -64,7 +74,10 @@ const liveLabels = ref<string[] | null>(null);
 const liveColors = ref<string[] | null>(null);
 const liveOptions = ref<Record<string, unknown> | null>(null);
 
-const chartType = computed(() => normalizeType(props.node.chartType));
+/** Schema type from PHP (`bar` | `column` | …). */
+const schemaType = computed(() => normalizeType(props.node.chartType));
+/** Actual ApexCharts chart.type (column → bar). */
+const chartType = computed(() => apexType(schemaType.value));
 const height = computed(() => Number(props.node.height || 320));
 const series = computed(() => liveSeries.value ?? (props.node.series as ChartSeries) ?? []);
 const categories = computed(() => liveCategories.value ?? (props.node.categories as string[]) ?? []);
@@ -76,8 +89,9 @@ const colors = computed(() => {
     return ['#3b5bdb', '#12b886', '#fab005', '#be4bdb', '#fd7e14'];
 });
 
-const isPieLike = computed(() => ['pie', 'donut', 'radialBar'].includes(chartType.value));
-const isBarLike = computed(() => ['bar', 'column'].includes(chartType.value));
+const isPieLike = computed(() => ['pie', 'donut', 'radialBar'].includes(schemaType.value));
+const isBarLike = computed(() => ['bar', 'column'].includes(schemaType.value));
+const isHorizontalBar = computed(() => schemaType.value === 'bar');
 
 const options = computed(() => {
     const foreground = cssVar('--foreground', '#1f2937');
@@ -86,6 +100,7 @@ const options = computed(() => {
     const sparkline = Boolean(props.node.sparkline);
     const toolbar = Boolean(props.node.toolbar);
     const type = chartType.value;
+    const requested = schemaType.value;
 
     // Always include line + bar plotOptions — ApexCharts 6 reads them during init
     // (globalVars / handleUserInputErrors) for every chart type.
@@ -107,7 +122,7 @@ const options = computed(() => {
             show: !isPieLike.value,
         },
         fill: {
-            type: type === 'area' ? 'gradient' : 'solid',
+            type: requested === 'area' ? 'gradient' : 'solid',
             gradient: {
                 shadeIntensity: 1,
                 opacityFrom: 0.45,
@@ -136,19 +151,20 @@ const options = computed(() => {
                 isSlopeChart: false,
             },
             bar: {
-                horizontal: type === 'bar',
+                // bar = horizontal, column = vertical (both use Apex type "bar")
+                horizontal: isHorizontalBar.value,
                 borderRadius: 4,
                 columnWidth: '55%',
                 barHeight: '70%',
             },
             pie: {
                 donut: {
-                    size: type === 'donut' ? '65%' : '0%',
+                    size: requested === 'donut' ? '65%' : '0%',
                     labels: {
-                        show: type === 'donut',
+                        show: requested === 'donut',
                         name: { color: foreground },
                         value: { color: foreground },
-                        total: { show: type === 'donut', color: muted },
+                        total: { show: requested === 'donut', color: muted },
                     },
                 },
             },
@@ -170,6 +186,7 @@ const options = computed(() => {
                       {
                           labels: { style: { colors: muted } },
                           tooltip: { enabled: false },
+                          reversed: false,
                       },
                   ],
               }),
@@ -267,8 +284,10 @@ watch(apiUrl, (url) => {
     }
 });
 
-/** Remount when type changes — ApexCharts does not reliably switch types in place. */
-const chartKey = computed(() => `${chartType.value}-${height.value}-${apiUrl.value ?? 'static'}`);
+/** Remount when orientation/type changes — ApexCharts does not reliably switch in place. */
+const chartKey = computed(
+    () => `${schemaType.value}-${chartType.value}-${height.value}-${apiUrl.value ?? 'static'}`,
+);
 </script>
 
 <template>

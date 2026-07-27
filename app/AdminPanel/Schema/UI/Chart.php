@@ -22,7 +22,8 @@ use App\AdminPanel\Schema\Component;
  * Chart::make()->type('area')->api('/admin/api/signups');
  *
  * Notes:
- * - `bar` = horizontal bars; `column` = vertical columns (ApexCharts v6).
+ * - `bar` and `column` both use ApexCharts' bar engine:
+ *   `bar` → horizontal, `column` → vertical (plotOptions.bar.horizontal = false).
  * - Prefer ->options() only for extras; the frontend always supplies safe plotOptions defaults.
  */
 class Chart extends Component

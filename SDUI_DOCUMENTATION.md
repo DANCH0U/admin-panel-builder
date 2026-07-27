@@ -188,7 +188,7 @@ Chart::make()
     ->border()
     ->label('Signups')
     ->type('area') // line | area | bar | column | pie | donut | radialBar
-    // bar = horizontal; column = vertical (ApexCharts v6)
+    // bar = horizontal; column = vertical (both Apex type "bar" + horizontal flag)
     ->height(280)
     ->categories(['Mon', 'Tue', 'Wed'])
     ->series([['name' => 'Users', 'data' => [4, 7, 5]]]);
