@@ -70,7 +70,7 @@ $this
     // Add 'admin' only when the panel should be is_admin-only:
     ->middleware(['auth', 'admin', 'panel:admin'])
     ->name('Admin Panel')   // sidebar brand title
-    ->logo('/admin-logo.svg');
+    ->logo('/placeholder/logo-placeholder.png');
 ```
 
 Open [http://127.0.0.1:8000/login](http://127.0.0.1:8000/login) and sign in → `/admin` (dashboard), `/admin/users`, `/admin/profile`.
