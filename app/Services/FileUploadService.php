@@ -24,6 +24,15 @@ class FileUploadService
             return false;
         }
 
+        // Public kit assets (e.g. /placeholder/…) are not on the storage disk.
+        if (str_starts_with($path, '/placeholder/') || str_starts_with($path, 'placeholder/')) {
+            return false;
+        }
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return false;
+        }
+
         $path = ltrim($path, '/');
 
         if (Storage::disk($disk)->exists($path)) {
@@ -41,6 +50,15 @@ class FileUploadService
 
         if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
             return $path;
+        }
+
+        // Absolute public paths (placeholders, static assets)
+        if (str_starts_with($path, '/')) {
+            return $path;
+        }
+
+        if (str_starts_with($path, 'placeholder/')) {
+            return '/'.$path;
         }
 
         return Storage::disk($disk)->url(ltrim($path, '/'));

@@ -5,6 +5,7 @@ namespace App\AdminPanel\Pages\{{ panelStudly }};
 use App\AdminPanel\Engine\BasePage;
 use App\AdminPanel\Schema\Button;
 use App\AdminPanel\Schema\Card;
+use App\AdminPanel\Schema\FileInput;
 use App\AdminPanel\Schema\Flex;
 use App\AdminPanel\Schema\Form;
 use App\AdminPanel\Schema\Grid;
@@ -12,20 +13,20 @@ use App\AdminPanel\Schema\Heading;
 use App\AdminPanel\Schema\Space;
 use App\AdminPanel\Schema\Text;
 use App\AdminPanel\Schema\TextInput;
-use App\Models\User;
 
 class ProfilePage extends BasePage
 {
-    public function __construct(protected User $user) {}
+    /** @var object */
+    protected object $data;
+
+    public function __construct(array|object $data = [])
+    {
+        $this->data = is_array($data) ? (object) $data : $data;
+    }
 
     public function title(): ?string
     {
         return 'Profile';
-    }
-
-    public function authorize(): bool
-    {
-        return true;
     }
 
     public function schema(): array
@@ -50,7 +51,7 @@ class ProfilePage extends BasePage
                     Card::make()
                         ->border()
                         ->label('Account')
-                        ->helpText('Your name, email, and optional password change.')
+                        ->helpText('Your name, email, avatar, and optional password change.')
                         ->schema([
                             Grid::make(2)->schema([
                                 TextInput::make('name')
@@ -61,6 +62,10 @@ class ProfilePage extends BasePage
                                     ->email()
                                     ->required(),
                             ]),
+                            Space::make(4),
+                            FileInput::make('avatar')
+                                ->label('Avatar')
+                                ->image(),
                             Space::make(4),
                             Text::make('Leave password blank to keep your current password.')
                                 ->variant('caption'),
@@ -116,8 +121,10 @@ class ProfilePage extends BasePage
     public function initialData(): array
     {
         return [
-            'name' => $this->user->name,
-            'email' => $this->user->email,
+            'name' => $this->data->name ?? '',
+            'email' => $this->data->email ?? '',
+            'avatar' => $this->data->avatar ?? '',
+            'avatar_file' => null,
             'password' => '',
             'password_confirmation' => '',
         ];

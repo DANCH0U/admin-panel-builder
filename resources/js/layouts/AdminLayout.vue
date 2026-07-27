@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -116,7 +117,9 @@ const currentPath = computed(() => normalizePath(page.url.split('?')[0] || '/'))
 
 /** Link items only (skip section labels). */
 const menuLinks = computed(() =>
-    (menu.value as any[]).filter((item) => item?.type !== 'label' && (item?.url || item?.href)),
+    (menu.value as any[]).filter(
+        (item) => item?.type !== 'label' && !item?.disabled && (item?.url || item?.href),
+    ),
 );
 
 function normalizePath(path: string): string {
@@ -148,6 +151,31 @@ function menuLabel(item: any) {
     const translated = ta(String(key));
     return translated !== String(key) ? translated : String(item.title || item.label || key);
 }
+
+function suffixColor(color?: string) {
+    const map: Record<string, string> = {
+        danger: 'danger',
+        destructive: 'danger',
+        success: 'success',
+        warning: 'warning',
+        info: 'info',
+        secondary: 'secondary',
+        outline: 'outline',
+        default: 'default',
+    };
+    return map[color || 'default'] ?? 'default';
+}
+
+function avatarSrc(avatar?: string | null) {
+    if (!avatar) return null;
+    if (avatar.startsWith('http://') || avatar.startsWith('https://') || avatar.startsWith('/')) {
+        return avatar;
+    }
+    return `/storage/${avatar.replace(/^\/+/, '')}`;
+}
+
+const userAvatar = computed(() => avatarSrc((user.value as any)?.avatar));
+const userInitial = computed(() => user.value?.name?.charAt(0)?.toUpperCase() || 'A');
 
 function toggleTheme() {
     dark.value = !dark.value;
@@ -221,6 +249,34 @@ function setLocale(code: string) {
                         >
                             {{ menuLabel(item) }}
                         </div>
+                        <div
+                            v-else-if="item.disabled"
+                            :class="
+                                cn(
+                                    'flex cursor-not-allowed items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm opacity-50',
+                                    'text-sidebar-foreground/60',
+                                )
+                            "
+                        >
+                            <Icon
+                                v-if="item.icon"
+                                :icon="item.icon"
+                                class="size-5 shrink-0 opacity-70"
+                            />
+                            <span class="min-w-0 flex-1 truncate">{{ menuLabel(item) }}</span>
+                            <Badge
+                                v-if="item.suffix?.type === 'badge'"
+                                :variant="suffixColor(item.suffix.color) as any"
+                                class="ms-auto shrink-0 px-1.5 py-0"
+                            >
+                                {{ item.suffix.value }}
+                            </Badge>
+                            <Icon
+                                v-else-if="item.suffix?.type === 'icon'"
+                                :icon="item.suffix.value"
+                                class="ms-auto size-4 shrink-0 opacity-70"
+                            />
+                        </div>
                         <Link
                             v-else
                             :href="item.url || item.href || '#'"
@@ -239,7 +295,19 @@ function setLocale(code: string) {
                                 :icon="item.icon"
                                 class="size-5 shrink-0 opacity-70"
                             />
-                            <span class="truncate">{{ menuLabel(item) }}</span>
+                            <span class="min-w-0 flex-1 truncate">{{ menuLabel(item) }}</span>
+                            <Badge
+                                v-if="item.suffix?.type === 'badge'"
+                                :variant="suffixColor(item.suffix.color) as any"
+                                class="ms-auto shrink-0 px-1.5 py-0"
+                            >
+                                {{ item.suffix.value }}
+                            </Badge>
+                            <Icon
+                                v-else-if="item.suffix?.type === 'icon'"
+                                :icon="item.suffix.value"
+                                class="ms-auto size-4 shrink-0 opacity-70"
+                            />
                         </Link>
                     </template>
                 </nav>
@@ -252,8 +320,9 @@ function setLocale(code: string) {
                                 class="flex w-full items-center gap-2.5 rounded-xl bg-sidebar-accent p-2.5 text-left transition-colors hover:bg-sidebar-accent/80"
                             >
                                 <Avatar class="size-9 ring-1 ring-border">
+                                    <AvatarImage v-if="userAvatar" :src="userAvatar" :alt="user?.name || 'Avatar'" />
                                     <AvatarFallback>
-                                        {{ user?.name?.charAt(0)?.toUpperCase() || 'A' }}
+                                        {{ userInitial }}
                                     </AvatarFallback>
                                 </Avatar>
                                 <div class="min-w-0 flex-1">

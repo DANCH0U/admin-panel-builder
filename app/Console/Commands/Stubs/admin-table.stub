@@ -14,10 +14,6 @@ class {{ class }} extends BaseResource
 
     protected string $model = {{ model }}::class;
 
-    public function authorize(): bool
-    {
-        return true;
-    }
 
     public function schema(): array
     {

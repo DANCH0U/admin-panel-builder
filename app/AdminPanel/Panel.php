@@ -17,10 +17,6 @@ class Panel
 
     protected ?string $logo = null;
 
-    protected ?string $navbarTitle = null;
-
-    protected bool $showThemeToggle = true;
-
     protected ?string $loginRoute = 'login';
 
     protected ?string $home = null;
@@ -92,30 +88,6 @@ class Panel
         return $this->logo;
     }
 
-    public function navbarTitle(?string $title): static
-    {
-        $this->navbarTitle = $title;
-
-        return $this;
-    }
-
-    public function getNavbarTitle(): ?string
-    {
-        return $this->navbarTitle ?? $this->name;
-    }
-
-    public function showThemeToggle(bool $show = true): static
-    {
-        $this->showThemeToggle = $show;
-
-        return $this;
-    }
-
-    public function getShowThemeToggle(): bool
-    {
-        return $this->showThemeToggle;
-    }
-
     public function loginRoute(?string $route): static
     {
         $this->loginRoute = $route;
@@ -183,8 +155,6 @@ class Panel
             ],
             'ui' => [
                 'logo_url' => $this->getLogo(),
-                'navbar_title' => $this->getNavbarTitle(),
-                'show_theme_toggle' => $this->getShowThemeToggle(),
             ],
         ];
     }

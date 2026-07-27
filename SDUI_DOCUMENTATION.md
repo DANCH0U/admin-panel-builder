@@ -22,10 +22,20 @@ php artisan make:admin-table Product --panel=admin --model=App\\Models\\Product
 | Command | Creates |
 |---------|---------|
 | `make:admin-page` | `Pages/{Panel}/…Page.php` → render with `Admin/SchemaPage` |
-| `make:admin-resource` | Resource + controller (+ optional form/view pages) |
+| `make:admin-resource` | Resource + controller (+ optional form/view pages). Routes use `{panel}.{resource}.*` names. |
 | `make:admin-table` | Resource only |
 
-All require `--panel=` (registry id or URL prefix). Generators do **not** create models/migrations.
+All require `--panel=` (registry id or URL prefix). Generators do **not** create models/migrations. **Middleware is not generated** — set it on the panel class yourself (`auth`, `admin`, `panel:{id}`).
+
+### Pages use a `$data` bag
+
+```php
+new PostFormPage(['type' => 'create']);
+new PostFormPage(array_merge($post->only([...]), ['type' => 'edit', 'id' => $post->id]));
+new PostViewPage(array_merge($post->toArray(), ['type' => 'view']));
+```
+
+Action/method live inside the page (derived from `type` + `id`).
 
 ---
 
@@ -530,7 +540,19 @@ public function header(): array
 }
 ```
 
-Always call `authorize()` / `authorizeOrFail()` on pages and resources.
+Authorize in controllers (or policies / middleware) — not on page or resource classes.
+
+### Menu items
+
+```php
+MenuItem::link('posts', admin_path('posts'))
+    ->icon('heroicons:rectangle-stack')
+    ->title('Posts')
+    ->suffix(value: '10', type: 'badge', color: 'danger')
+    // ->suffix(value: 'heroicons:bolt', type: 'icon', color: 'warning')
+    // ->disabled()
+    ;
+```
 
 ---
 

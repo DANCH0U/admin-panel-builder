@@ -14,7 +14,6 @@ use App\AdminPanel\Engine\Query\Stages\TabStage;
 use App\AdminPanel\Engine\Search\SearchPipeline;
 use App\AdminPanel\Notifications\Notify;
 use App\AdminPanel\Tables\Tabs\TabCollection;
-use App\AdminPanel\Tables\Tabs\TabCountResolver;
 use Illuminate\Http\Request;
 
 /**
@@ -25,12 +24,9 @@ class DataGridEngine
 {
     private QueryPipeline $pipeline;
 
-    private TabCountResolver $tabCountResolver;
-
     public function __construct()
     {
         $this->pipeline = self::defaultPipeline();
-        $this->tabCountResolver = new TabCountResolver();
     }
 
     public static function make(): static
@@ -41,13 +37,6 @@ class DataGridEngine
     public function usingPipeline(QueryPipeline $pipeline): static
     {
         $this->pipeline = $pipeline;
-
-        return $this;
-    }
-
-    public function usingTabCounts(TabCountResolver $resolver): static
-    {
-        $this->tabCountResolver = $resolver;
 
         return $this;
     }
@@ -69,8 +58,6 @@ class DataGridEngine
 
     public function handle(BaseResource $resource, Request $request): array|\Symfony\Component\HttpFoundation\StreamedResponse
     {
-        $resource->authorizeOrFail();
-
         $schema = $resource->schema();
         $model = $resource->getModel();
 
@@ -106,14 +93,6 @@ class DataGridEngine
         $transformed = $resource->transform($items, $schema['actions'] ?? []);
 
         $tabSchema = $schema['tabs'] ?? null;
-        $tabCounts = [];
-        if ($tabSchema instanceof TabCollection && config('admin.table.tab_counts', true)) {
-            $baseQuery = $model::query();
-            if (isset($schema['query']) && $schema['query'] instanceof \Closure) {
-                ($schema['query'])($baseQuery);
-            }
-            $tabCounts = $this->tabCountResolver->resolve($tabSchema, $baseQuery, $resource->getKey());
-        }
 
         $columns = $schema['columns'] ?? [];
         $columns[] = ['name' => 'table_actions', 'type' => 'table_actions', 'label' => '', 'hidden' => false];
@@ -125,7 +104,7 @@ class DataGridEngine
             'total_records' => $paginator->total(),
             'schema' => [
                 'tabs' => $tabSchema instanceof TabCollection
-                    ? $this->serializeTabs($tabSchema, $tabCounts)
+                    ? $this->serializeTabs($tabSchema)
                     : [],
                 'search' => isset($schema['search_columns'])
                     ? ['placeholder' => $schema['search_placeholder'] ?? 'Search...']
@@ -150,8 +129,6 @@ class DataGridEngine
 
     public function runBulkAction(BaseResource $resource, Request $request): \Illuminate\Http\RedirectResponse
     {
-        $resource->authorizeOrFail();
-
         $validated = $request->validate([
             'bulk_action' => ['required', 'string'],
             'ids' => ['required', 'array', 'min:1'],
@@ -183,14 +160,9 @@ class DataGridEngine
         abort(404, 'Bulk action not found.');
     }
 
-    private function serializeTabs(TabCollection $tabs, array $counts): array
+    private function serializeTabs(TabCollection $tabs): array
     {
-        return array_map(function ($tab) use ($counts) {
-            $arr = $tab->toArray();
-            $arr['count'] = $counts[$tab->getValue()] ?? null;
-
-            return $arr;
-        }, $tabs->all());
+        return array_map(fn ($tab) => $tab->toArray(), $tabs->all());
     }
 
     private function handleExport(BaseResource $resource, Request $request, array $schema): \Symfony\Component\HttpFoundation\StreamedResponse

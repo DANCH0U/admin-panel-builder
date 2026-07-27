@@ -3,8 +3,6 @@
 namespace App\Providers;
 
 use App\AdminPanel\PanelRegistry;
-use App\AdminPanel\Panels\VendorPanel;
-use App\AdminPanel\Panels\AdminPanel;
 use Illuminate\Support\ServiceProvider;
 
 class AdminPanelProvider extends ServiceProvider
@@ -17,7 +15,7 @@ class AdminPanelProvider extends ServiceProvider
      * @var list<class-string<\App\AdminPanel\Panel>>
      */
     protected array $panels = [
-        
+        //
     ];
 
     public function register(): void

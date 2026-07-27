@@ -11,14 +11,17 @@ use App\AdminPanel\Schema\TextInput;
 
 class {{ class }} extends BasePage
 {
+    /** @var object */
+    protected object $data;
+
+    public function __construct(array|object $data = [])
+    {
+        $this->data = is_array($data) ? (object) $data : $data;
+    }
+
     public function title(): ?string
     {
         return '{{ title }}';
-    }
-
-    public function authorize(): bool
-    {
-        return true;
     }
 
     public function schema(): array

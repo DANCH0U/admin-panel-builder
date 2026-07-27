@@ -22,10 +22,6 @@ class UserResource extends BaseResource
 
     protected string $model = User::class;
 
-    public function authorize(): bool
-    {
-        return true;
-    }
 
     public function title(): ?string
     {

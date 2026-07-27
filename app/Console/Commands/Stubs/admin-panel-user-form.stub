@@ -6,6 +6,7 @@ use App\AdminPanel\Engine\BasePage;
 use App\AdminPanel\PanelRegistry;
 use App\AdminPanel\Schema\Button;
 use App\AdminPanel\Schema\Card;
+use App\AdminPanel\Schema\FileInput;
 use App\AdminPanel\Schema\Flex;
 use App\AdminPanel\Schema\Form;
 use App\AdminPanel\Schema\Grid;
@@ -15,37 +16,37 @@ use App\AdminPanel\Schema\Space;
 use App\AdminPanel\Schema\Text;
 use App\AdminPanel\Schema\TextInput;
 use App\AdminPanel\Schema\Toggle;
-use App\Models\User;
 
 class UserFormPage extends BasePage
 {
-    public function __construct(
-        protected string $action,
-        protected string $method = 'POST',
-        protected ?string $pageTitle = null,
-        protected ?User $user = null,
-    ) {}
+    /** @var object */
+    protected object $data;
+
+    public function __construct(array|object $data = [])
+    {
+        $this->data = is_array($data) ? (object) $data : $data;
+    }
 
     public function title(): ?string
     {
-        return $this->pageTitle ?? ($this->user ? 'Edit user' : 'Create user');
-    }
+        if (($this->data->type ?? null) === 'create') {
+            return 'Create user';
+        }
 
-    public function authorize(): bool
-    {
-        return true;
+        return $this->data->name ?? 'Edit user';
     }
 
     public function schema(): array
     {
+        $isCreate = ($this->data->type ?? null) === 'create';
         $panelOptions = collect(PanelRegistry::all())
             ->mapWithKeys(fn ($panel) => [$panel->getId() => $panel->getName()])
             ->all();
 
-        $heading = $this->user ? 'Edit user' : 'Create user';
-        $description = $this->user
-            ? 'Update this user’s account details and panel access.'
-            : 'Add a new user with name, email, password, and panel access.';
+        $heading = $isCreate ? 'Create user' : 'Edit user';
+        $description = $isCreate
+            ? 'Add a new user with name, email, password, and panel access.'
+            : 'Update this user’s account details and panel access.';
 
         return [
             Flex::make()
@@ -60,8 +61,8 @@ class UserFormPage extends BasePage
             Space::make(6),
 
             Form::make()
-                ->action($this->action)
-                ->method($this->method)
+                ->action($isCreate ? admin_path('users') : admin_path('users/'.$this->data->id))
+                ->method($isCreate ? 'POST' : 'PUT')
                 ->schema([
                     Card::make()
                         ->border()
@@ -79,13 +80,17 @@ class UserFormPage extends BasePage
                                 TextInput::make('password')
                                     ->label('Password')
                                     ->password()
-                                    ->helpText($this->user ? 'Leave blank to keep the current password.' : 'Required for new users.')
-                                    ->required(! $this->user),
+                                    ->helpText($isCreate ? 'Required for new users.' : 'Leave blank to keep the current password.')
+                                    ->required($isCreate),
                                 Select::make('default_panel')
                                     ->label('Default panel')
                                     ->options($panelOptions)
                                     ->placeholder('None'),
                             ]),
+                            Space::make(4),
+                            FileInput::make('avatar')
+                                ->label('Avatar')
+                                ->image(),
                             Space::make(4),
                             Toggle::make('is_admin')
                                 ->label('Admin access'),
@@ -102,11 +107,13 @@ class UserFormPage extends BasePage
     public function initialData(): array
     {
         return [
-            'name' => $this->user?->name ?? '',
-            'email' => $this->user?->email ?? '',
+            'name' => $this->data->name ?? '',
+            'email' => $this->data->email ?? '',
             'password' => '',
-            'is_admin' => (bool) ($this->user?->is_admin ?? false),
-            'default_panel' => $this->user?->default_panel ?? '',
+            'avatar' => $this->data->avatar ?? '',
+            'avatar_file' => null,
+            'is_admin' => (bool) ($this->data->is_admin ?? false),
+            'default_panel' => $this->data->default_panel ?? '',
         ];
     }
 }

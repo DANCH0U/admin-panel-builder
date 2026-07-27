@@ -7,8 +7,6 @@ type PanelShared = {
     prefix?: string;
     path?: string;
     logo_url?: string | null;
-    navbar_title?: string | null;
-    show_theme_toggle?: boolean;
     locale?: string;
     language?: {
         label: string;
@@ -48,16 +46,12 @@ export function useAdminConfig() {
         settings: computed(() => ({
             app_name: panel.value.name,
             logo_url: panel.value.logo_url,
-            navbar_title: panel.value.navbar_title,
-            show_theme_toggle: panel.value.show_theme_toggle,
         })),
         prefix,
         basePath,
         adminPath,
         name: computed(() => panel.value.name || 'Admin Panel'),
         logoUrl: computed(() => panel.value.logo_url ?? null),
-        navbarTitle: computed(() => panel.value.navbar_title ?? null),
-        showThemeToggle: computed(() => panel.value.show_theme_toggle ?? true),
         loadingDelayMs: computed(() => {
             const raw = Number(panel.value.loading_delay_ms ?? 200);
             return Number.isFinite(raw) && raw >= 0 ? raw : 200;

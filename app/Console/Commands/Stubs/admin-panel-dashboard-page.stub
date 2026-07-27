@@ -14,14 +14,17 @@ use App\Models\User;
 
 class DashboardPage extends BasePage
 {
+    /** @var object */
+    protected object $data;
+
+    public function __construct(array|object $data = [])
+    {
+        $this->data = is_array($data) ? (object) $data : $data;
+    }
+
     public function title(): ?string
     {
         return 'Dashboard';
-    }
-
-    public function authorize(): bool
-    {
-        return true;
     }
 
     public function schema(): array

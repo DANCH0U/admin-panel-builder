@@ -13,8 +13,6 @@ export const useAdminStore = defineStore('admin', () => {
         return {
             app_name: panel.name,
             logo_url: panel.logo_url,
-            navbar_title: panel.navbar_title,
-            show_theme_toggle: panel.show_theme_toggle,
         };
     });
     const colorMode = ref('light');

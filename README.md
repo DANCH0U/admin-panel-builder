@@ -27,7 +27,7 @@ npm run dev
 php artisan serve
 ```
 
-`migrate --seed` creates the admin user. `storage:link` makes files on the `public` disk available at `/storage/...`. Keep `npm run dev` (or `npm run build`) running while you work.
+`migrate --seed` creates the admin user (`avatar` defaults to `/placeholder/avatar-placeholder.png`). `storage:link` makes files on the `public` disk available at `/storage/...`. Keep `npm run dev` (or `npm run build`) running while you work.
 
 ---
 
@@ -53,17 +53,24 @@ This scaffolds a **complete starter panel** and registers it in `app/Providers/A
 
 Every generated page includes a **heading + description**, cards, and spacing (`Space` / optional mobile bottom-bar actions).
 
-Optional — lock the panel to `is_admin` users:
+### Middleware (manual)
+
+`make:admin-panel` does **not** create middleware. Apply existing middleware yourself on the panel class. Typical stack:
+
+| Middleware | Role |
+|------------|------|
+| `auth` | Must be logged in |
+| `admin` | Requires `users.is_admin` (see `AdminMiddleware`) |
+| `panel:{id}` | Sets the active panel for `admin_path()` / menu |
 
 ```php
 // app/AdminPanel/Panels/AdminPanel.php
 $this
     ->prefix('admin')
+    // Add 'admin' only when the panel should be is_admin-only:
     ->middleware(['auth', 'admin', 'panel:admin'])
-    ->name('Admin Panel')
-    ->logo('/admin-logo.svg')
-    ->navbarTitle('Admin Panel')
-    ->showThemeToggle(true);
+    ->name('Admin Panel')   // sidebar brand title
+    ->logo('/admin-logo.svg');
 ```
 
 Open [http://127.0.0.1:8000/login](http://127.0.0.1:8000/login) and sign in → `/admin` (dashboard), `/admin/users`, `/admin/profile`.
@@ -226,8 +233,9 @@ Paste into `routes/panels/admin.php` and **save the file** (the command prints t
 
 ```php
 Route::post('/posts/bulk', [\App\Http\Controllers\Admin\PostController::class, 'bulk'])
-    ->name('posts.bulk');
-Route::resource('posts', \App\Http\Controllers\Admin\PostController::class);
+    ->name('admin.posts.bulk');
+Route::resource('posts', \App\Http\Controllers\Admin\PostController::class)
+    ->names('admin.posts');
 ```
 
 Confirm routes are loaded:
@@ -251,7 +259,11 @@ public function menu(): array
         ->section('content', [
             MenuItem::link('posts', admin_path('posts'))
                 ->icon('heroicons:rectangle-stack')
-                ->title('Posts'),
+                ->title('Posts')
+                // ->suffix(value: '10', type: 'badge', color: 'danger')
+                // ->suffix(value: 'heroicons:bolt', type: 'icon', color: 'warning')
+                // ->disabled()
+                ,
         ])
         ->build();
 }
@@ -263,18 +275,30 @@ Open `/admin/posts`.
 
 ### Authorization
 
-Generated pages and resources include:
+Put auth checks in **controllers** (or policies / middleware) — not on page or resource classes.
+
+- **Panel middleware** — chosen manually on the panel (see above); e.g. `admin` requires `is_admin`  
+- **Per-action** — gate `store` / `update` / `destroy` / `index` in the controller as needed  
+
+### Page `$data` pattern
+
+Form / view pages take a single `$data` bag (array from the controller → object on the page). Action/method are hardcoded inside the page from `type` + `id`.
 
 ```php
-public function authorize(): bool
-{
-    return true; // change this — return false → 403
-}
+// create
+$page = new PostFormPage(['type' => 'create']);
+
+// edit
+$page = new PostFormPage(array_merge($post->only([...]), [
+    'type' => 'edit',
+    'id' => $post->id,
+]));
+
+// view
+$page = new PostViewPage(array_merge($post->toArray(), ['type' => 'view']));
 ```
 
-- **Resource** `authorize()` — blocks index, bulk actions, delete  
-- **Form / view page** `authorize()` — blocks create/edit/show (and store/update via `authorizeOrFail()`)  
-- **Panel middleware** — e.g. `admin` requires `is_admin`; fails → unauthorized even if the panel is visible in the switcher  
+Inside the page: `$this->data->type`, `$this->data->title`, etc.
 
 ---
 
@@ -285,43 +309,33 @@ Scaffolded resources include **status tabs** and an **is_active** select filter 
 ### Create & edit — `PostFormPage`
 
 ```php
-use App\AdminPanel\Schema\{
-    Button, Card, FileInput, Flex, Form, Select, Textarea, TextInput, Toggle
-};
+public function __construct(array|object $data = [])
+{
+    $this->data = is_array($data) ? (object) $data : $data;
+}
 
 public function schema(): array
 {
+    $isCreate = ($this->data->type ?? null) === 'create';
+
     return [
+        // …heading…
         Form::make()
-            ->action($this->action)
-            ->method($this->method)
+            ->action($isCreate ? admin_path('posts') : admin_path('posts/'.$this->data->id))
+            ->method($isCreate ? 'POST' : 'PUT')
             ->schema([
                 Card::make()->border()->label('Post')->schema([
-                    TextInput::make('title')
-                        ->label('Title')
-                        ->required(),
-
-                    Textarea::make('description')
-                        ->label('Description')
-                        ->rows(5),
-
-                    FileInput::make('image')
-                        ->label('Image')
-                        ->image(),
-
-                    Select::make('status')
-                        ->label('Status')
-                        ->options([
-                            'draft' => 'Draft',
-                            'published' => 'Published',
-                        ])
-                        ->required(),
-
-                    Toggle::make('is_active')
-                        ->label('Active'),
+                    TextInput::make('title')->label('Title')->required(),
+                    Textarea::make('description')->label('Description')->rows(5),
+                    FileInput::make('image')->label('Image')->image(),
+                    Select::make('status')->label('Status')->options([
+                        'draft' => 'Draft',
+                        'published' => 'Published',
+                    ])->required(),
+                    Toggle::make('is_active')->label('Active'),
                 ]),
                 Flex::make()->justify('end')->schema([
-                    Button::make('Save')->submit(),
+                    Button::make('Save')->submit()->showOnBottomBar(),
                 ]),
             ]),
     ];
@@ -329,15 +343,13 @@ public function schema(): array
 
 public function initialData(): array
 {
-    $uploads = app(\App\Services\FileUploadService::class);
-
     return [
-        'title' => $this->post?->title ?? '',
-        'description' => $this->post?->description ?? '',
-        'image' => $uploads->url($this->post?->image) ?? '',
-        'image_file' => null, // required so Inertia can submit the File
-        'status' => $this->post?->status ?? 'draft',
-        'is_active' => $this->post?->is_active ?? true,
+        'title' => $this->data->title ?? '',
+        'description' => $this->data->description ?? '',
+        'image' => $this->data->image ?? '', // stored path string
+        'image_file' => null,
+        'status' => $this->data->status ?? 'draft',
+        'is_active' => (bool) ($this->data->is_active ?? true),
     ];
 }
 ```
@@ -351,8 +363,6 @@ use App\Services\FileUploadService;
 
 public function store(Request $request, FileUploadService $uploads)
 {
-    (new PostFormPage(action: admin_path('posts'), method: 'POST'))->authorizeOrFail();
-
     $validated = $request->validate([
         'title' => ['required', 'string', 'max:255'],
         'description' => ['nullable', 'string'],
@@ -370,17 +380,11 @@ public function store(Request $request, FileUploadService $uploads)
     Post::create($validated);
     Notify::success('Post created.');
 
-    return redirect()->route('posts.index');
+    return redirect()->route('admin.posts.index');
 }
 
 public function update(Request $request, Post $post, FileUploadService $uploads)
 {
-    (new PostFormPage(
-        action: admin_path('posts/'.$post->getKey()),
-        method: 'PUT',
-        post: $post,
-    ))->authorizeOrFail();
-
     $validated = $request->validate([
         'title' => ['required', 'string', 'max:255'],
         'description' => ['nullable', 'string'],
@@ -399,7 +403,7 @@ public function update(Request $request, Post $post, FileUploadService $uploads)
     $post->update($validated);
     Notify::success('Post updated.');
 
-    return redirect()->route('posts.index');
+    return redirect()->route('admin.posts.index');
 }
 ```
 
@@ -408,7 +412,6 @@ On delete, remove the file too:
 ```php
 public function destroy(Post $post, FileUploadService $uploads)
 {
-    (new PostResource())->authorizeOrFail();
     $uploads->delete($post->image);
     $post->delete();
     Notify::success('Post deleted.');

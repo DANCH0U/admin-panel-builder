@@ -69,7 +69,5 @@ return [
     'table' => [
         'default_per_page' => 25,
         'per_page_options' => [10, 25, 50, 100],
-        'tab_counts' => true,
-        'tab_count_ttl' => 300,
     ],
 ];

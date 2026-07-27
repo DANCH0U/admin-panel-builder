@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
                 'email_verified_at' => now(),
                 'is_admin' => true,
                 'default_panel' => 'admin',
+                'avatar' => '/placeholder/avatar-placeholder.png',
             ],
         );
     }

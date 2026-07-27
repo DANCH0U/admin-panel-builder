@@ -6,6 +6,7 @@ use App\AdminPanel\Engine\BaseResource;
 use App\AdminPanel\Schema\Button;
 use App\AdminPanel\Schema\Flex;
 use App\AdminPanel\Schema\Heading;
+use App\AdminPanel\Schema\Space;
 use App\AdminPanel\Schema\Text;
 use App\AdminPanel\Tables\Action;
 use App\AdminPanel\Tables\BadgeColumn;
@@ -24,10 +25,6 @@ class {{ class }} extends BaseResource
 
     protected string $model = {{ modelClass }}::class;
 
-    public function authorize(): bool
-    {
-        return true;
-    }
 
     public function title(): ?string
     {
@@ -55,6 +52,8 @@ class {{ class }} extends BaseResource
 {{ headerActions }}
                     ]),
                 ]),
+
+            Space::make(4),
         ];
     }
 

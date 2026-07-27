@@ -75,6 +75,7 @@ class MakeAdminResource extends Command
             '{{ title }}' => $title,
             '{{ titleSingular }}' => $titleSingular,
             '{{ titleLower }}' => $titleLower,
+            '{{ panel }}' => $panelId,
             '{{ createUrl }}' => $withForm ? "admin_path('{$key}/create')" : 'null',
             '{{ createLabel }}' => $withForm ? "'Add {$titleSingular}'" : 'null',
         ];
@@ -110,9 +111,11 @@ class MakeAdminResource extends Command
         $this->line("Add routes to <fg=yellow>routes/panels/{$panelId}.php</>:");
         $this->newLine();
         $this->line("    Route::post('/{$key}/bulk', [\\{$controllerNs}\\{$resource}Controller::class, 'bulk'])");
-        $this->line("        ->name('{$key}.bulk');");
+        $this->line("        ->name('{$panelId}.{$key}.bulk');");
         $this->line("    Route::resource('{$key}', \\{$controllerNs}\\{$resource}Controller::class)" .
-            ($withForm || $withView ? ';' : "->only(['index', 'destroy']);"));
+            ($withForm || $withView
+                ? "->names('{$panelId}.{$key}');"
+                : "->only(['index', 'destroy'])->names('{$panelId}.{$key}');"));
         $this->newLine();
         $menuHint = $panel::class;
         $this->line("Optional menu item in <fg=yellow>{$menuHint}::menu()</>:");
@@ -188,11 +191,7 @@ PHP;
 
     public function create()
     {
-        \$page = new {$resource}FormPage(
-            action: admin_path('{$base['{{ key }}']}'),
-            method: 'POST',
-            pageTitle: 'Create {$base['{{ titleSingular }}']}',
-        );
+        \$page = new {$resource}FormPage(['type' => 'create']);
 
         return Inertia::render('Admin/SchemaPage', \$page->toInertia([
             'initialData' => \$page->initialData(),
@@ -201,11 +200,6 @@ PHP;
 
     public function store(Request \$request)
     {
-        (new {$resource}FormPage(
-            action: admin_path('{$base['{{ key }}']}'),
-            method: 'POST',
-        ))->authorizeOrFail();
-
         \$validated = \$request->validate([
             'name' => ['required', 'string', 'max:255'],
         ]);
@@ -213,17 +207,18 @@ PHP;
         {$modelClass}::create(\$validated);
         Notify::success('{$base['{{ titleSingular }}']} created.');
 
-        return redirect()->route('{$base['{{ key }}']}.index');
+        return redirect()->route('{$panelId}.{$base['{{ key }}']}.index');
     }
 
     public function edit({$modelClass} \${$base['{{ modelVar }}']})
     {
-        \$page = new {$resource}FormPage(
-            action: admin_path('{$base['{{ key }}']}/'.\${$base['{{ modelVar }}']}->getKey()),
-            method: 'PUT',
-            pageTitle: 'Edit {$base['{{ titleSingular }}']}',
-            {$base['{{ modelVar }}']}: \${$base['{{ modelVar }}']},
-        );
+        \$page = new {$resource}FormPage(array_merge(
+            \${$base['{{ modelVar }}']}->only(['name']),
+            [
+                'type' => 'edit',
+                'id' => \${$base['{{ modelVar }}']}->id,
+            ],
+        ));
 
         return Inertia::render('Admin/SchemaPage', \$page->toInertia([
             'initialData' => \$page->initialData(),
@@ -232,12 +227,6 @@ PHP;
 
     public function update(Request \$request, {$modelClass} \${$base['{{ modelVar }}']})
     {
-        (new {$resource}FormPage(
-            action: admin_path('{$base['{{ key }}']}/'.\${$base['{{ modelVar }}']}->getKey()),
-            method: 'PUT',
-            {$base['{{ modelVar }}']}: \${$base['{{ modelVar }}']},
-        ))->authorizeOrFail();
-
         \$validated = \$request->validate([
             'name' => ['required', 'string', 'max:255'],
         ]);
@@ -245,13 +234,11 @@ PHP;
         \${$base['{{ modelVar }}']}->update(\$validated);
         Notify::success('{$base['{{ titleSingular }}']} updated.');
 
-        return redirect()->route('{$base['{{ key }}']}.index');
+        return redirect()->route('{$panelId}.{$base['{{ key }}']}.index');
     }
 
     public function destroy({$modelClass} \${$base['{{ modelVar }}']})
     {
-        (new {$resource}Resource())->authorizeOrFail();
-
         \${$base['{{ modelVar }}']}->delete();
         Notify::success('{$base['{{ titleSingular }}']} deleted.');
 
@@ -263,8 +250,6 @@ PHP;
 
     public function destroy({$modelClass} \${$base['{{ modelVar }}']})
     {
-        (new {$resource}Resource())->authorizeOrFail();
-
         \${$base['{{ modelVar }}']}->delete();
         Notify::success('{$base['{{ titleSingular }}']} deleted.');
 
@@ -279,7 +264,10 @@ PHP;
 
     public function show({$modelClass} \${$base['{{ modelVar }}']})
     {
-        \$page = new {$resource}ViewPage(\${$base['{{ modelVar }}']});
+        \$page = new {$resource}ViewPage(array_merge(
+            \${$base['{{ modelVar }}']}->toArray(),
+            ['type' => 'view'],
+        ));
 
         return Inertia::render('Admin/SchemaPage', \$page->toInertia());
     }

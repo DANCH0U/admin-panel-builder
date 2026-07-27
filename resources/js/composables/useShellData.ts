@@ -1,11 +1,22 @@
 import { usePage } from '@inertiajs/vue3';
 import { computed, shallowRef, watch } from 'vue';
 
-type MenuItem = {
-    href: string;
-    label: string;
+export type MenuSuffix = {
+    value: string;
+    type: 'badge' | 'icon' | string;
+    color?: string;
+};
+
+export type MenuItem = {
+    href?: string;
+    url?: string;
+    title?: string;
+    label?: string;
     icon?: string;
     key?: string;
+    type?: string;
+    disabled?: boolean;
+    suffix?: MenuSuffix | null;
 };
 
 export function useShellData() {

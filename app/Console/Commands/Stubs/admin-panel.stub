@@ -17,9 +17,7 @@ class {{ class }} extends Panel
             // Add 'admin' middleware for is_admin-only access: ['auth', 'admin', 'panel:{{ id }}']
             ->middleware(['auth', 'panel:{{ id }}'])
             ->name('{{ title }}')
-            ->logo(null)
-            ->navbarTitle('{{ title }}')
-            ->showThemeToggle(true);
+            ->logo(null);
             // ->hidden(); // hide from user-menu switcher
     }
 

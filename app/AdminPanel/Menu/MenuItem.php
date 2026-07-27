@@ -16,6 +16,11 @@ class MenuItem implements \JsonSerializable
 
     public ?array $children = [];
 
+    /** @var array{value: string, type: string, color?: string}|null */
+    public ?array $suffix = null;
+
+    public bool $disabled = false;
+
     public function __construct(string $key)
     {
         $this->title = $key;
@@ -89,8 +94,35 @@ class MenuItem implements \JsonSerializable
         return $this;
     }
 
+    /**
+     * Trailing badge or icon in the sidebar.
+     *
+     * MenuItem::link(...)->suffix(value: '10', type: 'badge', color: 'danger')
+     * MenuItem::link(...)->suffix(value: 'heroicons:home', type: 'icon', color: 'danger')
+     */
+    public function suffix(string $value, string $type = 'badge', ?string $color = null): static
+    {
+        $this->suffix = array_filter([
+            'value' => $value,
+            'type' => $type,
+            'color' => $color,
+        ], fn ($v) => $v !== null && $v !== '');
+
+        return $this;
+    }
+
+    public function disabled(bool $disabled = true): static
+    {
+        $this->disabled = $disabled;
+
+        return $this;
+    }
+
     public function jsonSerialize(): array
     {
-        return array_filter(get_object_vars($this), fn ($value) => $value !== null);
+        return array_filter(
+            get_object_vars($this),
+            fn ($value) => $value !== null && $value !== [],
+        );
     }
 }

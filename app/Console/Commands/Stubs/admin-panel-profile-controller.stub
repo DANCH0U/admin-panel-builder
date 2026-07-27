@@ -5,6 +5,7 @@ namespace App\Http\Controllers\{{ panelStudly }};
 use App\AdminPanel\Notifications\Notify;
 use App\AdminPanel\Pages\{{ panelStudly }}\ProfilePage;
 use App\Http\Controllers\Controller;
+use App\Services\FileUploadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -16,27 +17,35 @@ class ProfileController extends Controller
 {
     public function edit(Request $request)
     {
-        $page = new ProfilePage($request->user());
+        $user = $request->user();
+        $page = new ProfilePage(array_merge(
+            $user->only(['name', 'email', 'avatar']),
+            ['type' => 'edit', 'id' => $user->id],
+        ));
 
         return Inertia::render('Admin/SchemaPage', $page->toInertia([
             'initialData' => $page->initialData(),
         ]));
     }
 
-    public function update(Request $request)
+    public function update(Request $request, FileUploadService $uploads)
     {
-        (new ProfilePage($request->user()))->authorizeOrFail();
-
         $user = $request->user();
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$user->id],
             'password' => ['nullable', 'confirmed', Password::defaults()],
+            'avatar_file' => ['nullable', 'image', 'max:2048'],
         ]);
 
         $user->name = $validated['name'];
         $user->email = $validated['email'];
+
+        if ($request->hasFile('avatar_file')) {
+            $uploads->delete($user->avatar);
+            $user->avatar = $uploads->upload($request->file('avatar_file'), 'avatars');
+        }
 
         if (! empty($validated['password'])) {
             $user->password = Hash::make($validated['password']);

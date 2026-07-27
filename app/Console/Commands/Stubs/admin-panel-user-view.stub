@@ -7,30 +7,29 @@ use App\AdminPanel\Schema\Button;
 use App\AdminPanel\Schema\Card;
 use App\AdminPanel\Schema\Flex;
 use App\AdminPanel\Schema\Heading;
+use App\AdminPanel\Schema\Image;
 use App\AdminPanel\Schema\KeyValue;
 use App\AdminPanel\Schema\Space;
 use App\AdminPanel\Schema\Text;
-use App\Models\User;
 
 class UserViewPage extends BasePage
 {
-    public function __construct(protected User $user) {}
+    /** @var object */
+    protected object $data;
+
+    public function __construct(array|object $data = [])
+    {
+        $this->data = is_array($data) ? (object) $data : $data;
+    }
 
     public function title(): ?string
     {
-        return $this->user->name ?? 'User';
-    }
-
-    public function authorize(): bool
-    {
-        return true;
+        return $this->data->name ?? 'User';
     }
 
     public function schema(): array
     {
-        $record = $this->user;
-
-        return [
+        $schema = [
             Flex::make()
                 ->justify('between')
                 ->align('end')
@@ -42,14 +41,14 @@ class UserViewPage extends BasePage
                         ->align('start')
                         ->gap(1)
                         ->schema([
-                            Heading::make($record->name ?? 'User')->level(1),
+                            Heading::make($this->data->name ?? 'User')->level(1),
                             Text::make('View account details for this user.')
                                 ->variant('subdued'),
                         ]),
                     Flex::make()->gap(2)->schema([
                         Button::make('Edit')
                             ->variant('outline')
-                            ->url(admin_path('users/'.$record->getKey().'/edit')),
+                            ->url(admin_path('users/'.($this->data->id ?? '').'/edit')),
                         Button::make('Back')
                             ->variant('secondary')
                             ->url(admin_path('users')),
@@ -64,14 +63,23 @@ class UserViewPage extends BasePage
                 ->helpText('Read-only snapshot of this user record.')
                 ->schema([
                     KeyValue::make()->entries([
-                        'ID' => $record->getKey(),
-                        'Name' => $record->name ?? '—',
-                        'Email' => $record->email ?? '—',
-                        'Admin' => $record->is_admin ? 'Yes' : 'No',
-                        'Default panel' => $record->default_panel ?: '—',
-                        'Created' => $record->created_at?->format('M d, Y H:i') ?? '—',
+                        'ID' => $this->data->id ?? '—',
+                        'Name' => $this->data->name ?? '—',
+                        'Email' => $this->data->email ?? '—',
+                        'Admin' => ! empty($this->data->is_admin) ? 'Yes' : 'No',
+                        'Default panel' => $this->data->default_panel ?: '—',
+                        'Created' => isset($this->data->created_at)
+                            ? \Carbon\Carbon::parse($this->data->created_at)->format('M d, Y H:i')
+                            : '—',
                     ]),
                 ]),
         ];
+
+        if (! empty($this->data->avatar)) {
+            $schema[] = Space::make(4);
+            $schema[] = Image::make($this->data->avatar)->label('Avatar');
+        }
+
+        return $schema;
     }
 }
