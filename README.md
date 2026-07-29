@@ -8,9 +8,9 @@ Ships as a **clean kit** (no panels). Follow this guide to create a panel and a 
 
 **Component reference:** [SDUI_DOCUMENTATION.md](./SDUI_DOCUMENTATION.md)
 
-<img width="1901" height="908" alt="1" src="https://github.com/user-attachments/assets/97e7598f-f505-43ae-94af-a9f274156540" />
-<img width="1915" height="905" alt="3" src="https://github.com/user-attachments/assets/a1985180-70ff-4853-b69a-6b251294eb00" />
-<img width="1915" height="906" alt="2" src="https://github.com/user-attachments/assets/fe2ad096-8180-41b5-8d6d-3fd7b8806fa2" />
+<img width="1902" height="907" alt="1" src="https://github.com/user-attachments/assets/d498bc07-02d1-46de-922e-42cb34bab597" />
+<img width="1901" height="910" alt="2" src="https://github.com/user-attachments/assets/78bf9f49-f1b0-4897-88a5-66657cc98c87" />
+<img width="1916" height="910" alt="3" src="https://github.com/user-attachments/assets/8d6de577-6b29-420a-9586-fd2e9fbfd7cf" />
 
 ---
 
