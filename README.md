@@ -314,9 +314,9 @@ public function destroy(Request $request, Post $post, FileUploadService $uploads
 
 `$uploads->upload()` returns a path like `posts/uuid.jpg` → public URL `/storage/posts/uuid.jpg`.
 
-### 4.6 View + DataGrid
+### 4.6 View page — `PostViewPage`
 
-**View** — top actions, `KeyValue` for text, `Image` for uploads (KeyValue will not render pictures):
+Top actions, `KeyValue` for text, `Image` for uploads (KeyValue will not render pictures):
 
 ```php
 Flex::make()->justify('between')->schema([
@@ -336,7 +336,85 @@ Card::make()->border()->schema([
 Image::make($this->data->image ?? null)->label('Image');
 ```
 
-**Resource** — search `title`/`description`, status tabs, image column, `is_active` filter (scaffold already includes tabs/filter; swap `name` → post fields).
+### 4.7 DataGrid — `PostResource`
+
+Customize `schema()` on the generated resource. Scaffold uses `name`; swap to post fields:
+
+```php
+use App\AdminPanel\Tables\Action;
+use App\AdminPanel\Tables\BadgeColumn;
+use App\AdminPanel\Tables\BooleanColumn;
+use App\AdminPanel\Tables\BulkAction;
+use App\AdminPanel\Tables\ImageColumn;
+use App\AdminPanel\Tables\Search;
+use App\AdminPanel\Tables\SelectFilter;
+use App\AdminPanel\Tables\Tab;
+use App\AdminPanel\Tables\Tabs;
+use App\AdminPanel\Tables\TextColumn;
+use App\Models\Post;
+
+public function schema(): array
+{
+    return [
+        'search_placeholder' => 'Search posts…',
+        'search_columns' => [
+            Search::column('title')->weight(3),
+            Search::column('description')->weight(1),
+        ],
+        'tabs' => Tabs::make([
+            Tab::make('all'),
+            Tab::make('draft')
+                ->query(fn ($q) => $q->where('status', 'draft'))
+                ->color('warning'),
+            Tab::make('published')
+                ->query(fn ($q) => $q->where('status', 'published'))
+                ->color('success'),
+        ]),
+        'columns' => [
+            TextColumn::make('id')->label('ID')->sortable(),
+            ImageColumn::make('image')->label('Image')->rounded(),
+            TextColumn::make('title')->label('Title')->sortable(),
+            TextColumn::make('description')->label('Description')->maxLength(50)->toggleable(),
+            BadgeColumn::make('status')
+                ->label('Status')
+                ->colors([
+                    'warning' => 'draft',
+                    'success' => 'published',
+                ]),
+            BooleanColumn::make('is_active')->label('Active'),
+            TextColumn::make('created_at')
+                ->label('Created')
+                ->sortable()
+                ->transform(fn ($v) => $v ? \Carbon\Carbon::parse($v)->format('M d, Y') : null),
+        ],
+        'filters' => [
+            SelectFilter::make('is_active')
+                ->label('Active')
+                ->options([
+                    '1' => 'Active',
+                    '0' => 'Inactive',
+                ]),
+        ],
+        'actions' => [
+            Action::make('view')->url(fn ($r) => admin_path('posts/'.$r['id'])),
+            Action::make('edit')->url(fn ($r) => admin_path('posts/'.$r['id'].'/edit')),
+            Action::make('delete')->delete(fn ($r) => admin_path('posts/'.$r['id'])),
+        ],
+        'bulk_actions' => [
+            BulkAction::make('delete')
+                ->label('Delete selected')
+                ->delete(fn (array $ids) => Post::whereIn('id', $ids)->delete()),
+        ],
+        'settings' => [
+            'record_selection' => true,
+            'selection_column' => 'id',
+            'bulk_url' => admin_path('posts/bulk'),
+        ],
+    ];
+}
+```
+
+Also set the header “Add” button URL in `header()` to `admin_path('posts/create')` if the scaffold still points at a generic path.
 
 ---
 
@@ -457,7 +535,7 @@ php artisan make:admin-panel admin
 
 php artisan make:model Post -m && php artisan migrate
 php artisan make:admin-resource Post --panel=admin --form --view
-# Add routes + menu, customize form fields / controller validation
+# Add routes + menu, customize form / PostResource DataGrid / controller
 ```
 
 Login: **admin@example.com** / **password** → `/admin` → `/admin/posts`
