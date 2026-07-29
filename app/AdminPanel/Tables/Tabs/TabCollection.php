@@ -24,7 +24,9 @@ class TabCollection
      */
     public function all(): array
     {
-        return array_filter($this->tabs, fn(TabContract $t) => $t->isVisible());
+        return array_values(
+            array_filter($this->tabs, fn(TabContract $t) => $t->isVisible())
+        );
     }
 
     public function find(string $value): ?TabContract

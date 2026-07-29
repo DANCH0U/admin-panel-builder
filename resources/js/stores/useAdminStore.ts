@@ -5,7 +5,8 @@ import { computed, ref } from 'vue';
 export const useAdminStore = defineStore('admin', () => {
     const page = usePage();
     const sideBarKey = ref('dashboard');
-    const sideBarOpen = ref(true);
+    /** Mobile drawer state — desktop keeps the sidebar visible via `lg:` classes. */
+    const sideBarOpen = ref(false);
     const loading = ref(false);
     const settings = computed(() => {
         const panel = page.props.panel as Record<string, unknown> | undefined;

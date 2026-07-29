@@ -22,6 +22,9 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'auth' => [
                 'user' => fn () => $request->user(),
+                'unread_notifications' => fn () => $request->user()
+                    ? $request->user()->unreadNotifications()->count()
+                    : 0,
             ],
             'notifications' => fn () => FlashBag::collect(),
             'panel' => fn () => $this->sharePanel($request),
@@ -100,6 +103,10 @@ class HandleInertiaRequests extends Middleware
             'logout' => __('admin.logout'),
             'light' => __('admin.light'),
             'dark' => __('admin.dark'),
+            'notifications' => __('admin.notifications'),
+            'notifications_empty' => __('admin.notifications_empty'),
+            'notifications_mark_all' => __('admin.notifications_mark_all'),
+            'notifications_mark_read' => __('admin.notifications_mark_read'),
         ];
     }
 

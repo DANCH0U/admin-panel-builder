@@ -7,6 +7,7 @@ use App\AdminPanel\Notifications\Notify;
 use {{ resourceFqcn }};
 {{ formImport }}{{ viewImport }}use {{ modelFqcn }};
 use App\Http\Controllers\Controller;
+use App\Notifications\AdminNotification;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 

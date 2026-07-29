@@ -9,6 +9,7 @@ use App\AdminPanel\Pages\{{ panelStudly }}\UserViewPage;
 use App\AdminPanel\Resources\{{ panelStudly }}\UserResource;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Notifications\AdminNotification;
 use App\Services\FileUploadService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -51,8 +52,16 @@ class UserController extends Controller
 
         unset($validated['avatar_file']);
 
-        User::create($validated);
+        $user = User::create($validated);
+
         Notify::success('User created.');
+        AdminNotification::send(
+            $request->user(),
+            'User "'.$user->name.'" was created.',
+            title: 'Users',
+            type: 'success',
+            url: admin_path('users/'.$user->id),
+        );
 
         return redirect()->route('{{ panel }}.users.index');
     }
@@ -91,16 +100,33 @@ class UserController extends Controller
         unset($validated['avatar_file']);
 
         $user->update($validated);
+
         Notify::success('User updated.');
+        AdminNotification::send(
+            $request->user(),
+            'User "'.$user->name.'" was updated.',
+            title: 'Users',
+            type: 'info',
+            url: admin_path('users/'.$user->id),
+        );
 
         return redirect()->route('{{ panel }}.users.show', $user);
     }
 
-    public function destroy(User $user, FileUploadService $uploads)
+    public function destroy(Request $request, User $user, FileUploadService $uploads)
     {
+        $name = $user->name;
         $uploads->delete($user->avatar);
         $user->delete();
+
         Notify::success('User deleted.');
+        AdminNotification::send(
+            $request->user(),
+            'User "'.$name.'" was deleted.',
+            title: 'Users',
+            type: 'warning',
+            url: admin_path('users'),
+        );
 
         return back();
     }

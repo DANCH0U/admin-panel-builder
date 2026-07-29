@@ -122,6 +122,7 @@ class DataGridEngine
                 )),
                 'settings' => array_merge([
                     'bulk_url' => null,
+                    'query_prefix' => $schema['query_prefix'] ?? null,
                 ], $schema['settings'] ?? []),
             ],
         ];
@@ -162,7 +163,7 @@ class DataGridEngine
 
     private function serializeTabs(TabCollection $tabs): array
     {
-        return array_map(fn ($tab) => $tab->toArray(), $tabs->all());
+        return array_values(array_map(fn ($tab) => $tab->toArray(), $tabs->all()));
     }
 
     private function handleExport(BaseResource $resource, Request $request, array $schema): \Symfony\Component\HttpFoundation\StreamedResponse

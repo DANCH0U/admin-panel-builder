@@ -30,7 +30,9 @@ class RelationFilter extends AbstractFilter
 
     public function toArray(): array
     {
-        $opts = is_callable($this->options) ? ($this->options)() : $this->options;
-        return array_merge(parent::toArray(), ['options' => $opts, 'relation' => $this->relation]);
+        return array_merge(parent::toArray(), [
+            'options' => $this->options,
+            'relation' => $this->relation,
+        ]);
     }
 }

@@ -5,6 +5,10 @@ namespace App\AdminPanel\Tables\Filters\Types;
 use App\AdminPanel\Tables\Filters\AbstractFilter;
 use Illuminate\Database\Eloquent\Builder;
 
+/**
+ * Reads ?search[key][min] and ?search[key][max] — either side may be omitted.
+ * min()/max() only bound the inputs shown in the filter panel.
+ */
 class NumericRangeFilter extends AbstractFilter
 {
     protected string $type = 'numeric_range';
@@ -25,6 +29,10 @@ class NumericRangeFilter extends AbstractFilter
 
     public function apply(Builder $query, mixed $value): void
     {
+        if (! is_array($value)) {
+            return;
+        }
+
         $min = isset($value['min']) && $value['min'] !== '' ? (float) $value['min'] : null;
         $max = isset($value['max']) && $value['max'] !== '' ? (float) $value['max'] : null;
 

@@ -204,8 +204,16 @@ PHP;
             'name' => ['required', 'string', 'max:255'],
         ]);
 
-        {$modelClass}::create(\$validated);
+        \${$base['{{ modelVar }}']} = {$modelClass}::create(\$validated);
+
         Notify::success('{$base['{{ titleSingular }}']} created.');
+        AdminNotification::send(
+            \$request->user(),
+            '{$base['{{ titleSingular }}']} created.',
+            title: '{$base['{{ title }}']}',
+            type: 'success',
+            url: admin_path('{$base['{{ key }}']}/'.\${$base['{{ modelVar }}']}->id),
+        );
 
         return redirect()->route('{$base['{{ panel }}']}.{$base['{{ key }}']}.index');
     }
@@ -232,15 +240,31 @@ PHP;
         ]);
 
         \${$base['{{ modelVar }}']}->update(\$validated);
+
         Notify::success('{$base['{{ titleSingular }}']} updated.');
+        AdminNotification::send(
+            \$request->user(),
+            '{$base['{{ titleSingular }}']} updated.',
+            title: '{$base['{{ title }}']}',
+            type: 'info',
+            url: admin_path('{$base['{{ key }}']}/'.\${$base['{{ modelVar }}']}->id),
+        );
 
         return redirect()->route('{$base['{{ panel }}']}.{$base['{{ key }}']}.index');
     }
 
-    public function destroy({$modelClass} \${$base['{{ modelVar }}']})
+    public function destroy(Request \$request, {$modelClass} \${$base['{{ modelVar }}']})
     {
         \${$base['{{ modelVar }}']}->delete();
+
         Notify::success('{$base['{{ titleSingular }}']} deleted.');
+        AdminNotification::send(
+            \$request->user(),
+            '{$base['{{ titleSingular }}']} deleted.',
+            title: '{$base['{{ title }}']}',
+            type: 'warning',
+            url: admin_path('{$base['{{ key }}']}'),
+        );
 
         return back();
     }
@@ -248,10 +272,18 @@ PHP;
         } else {
             $formMethods = <<<PHP
 
-    public function destroy({$modelClass} \${$base['{{ modelVar }}']})
+    public function destroy(Request \$request, {$modelClass} \${$base['{{ modelVar }}']})
     {
         \${$base['{{ modelVar }}']}->delete();
+
         Notify::success('{$base['{{ titleSingular }}']} deleted.');
+        AdminNotification::send(
+            \$request->user(),
+            '{$base['{{ titleSingular }}']} deleted.',
+            title: '{$base['{{ title }}']}',
+            type: 'warning',
+            url: admin_path('{$base['{{ key }}']}'),
+        );
 
         return back();
     }

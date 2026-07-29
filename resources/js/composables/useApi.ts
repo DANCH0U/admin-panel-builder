@@ -10,6 +10,16 @@ const apiInstance = axios.create({
 
 apiInstance.interceptors.request.use((config) => {
     config.withCredentials = true; // Send Laravel session cookies
+
+    // Laravel XSRF-TOKEN cookie → header (needed for POST/DELETE)
+    if (typeof document !== 'undefined') {
+        const match = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]*)/);
+        if (match?.[1]) {
+            config.headers = config.headers ?? {};
+            config.headers['X-XSRF-TOKEN'] = decodeURIComponent(match[1]);
+        }
+    }
+
     return config;
 });
 

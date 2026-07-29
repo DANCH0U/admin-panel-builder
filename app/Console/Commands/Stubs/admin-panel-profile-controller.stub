@@ -5,6 +5,7 @@ namespace App\Http\Controllers\{{ panelStudly }};
 use App\AdminPanel\Notifications\Notify;
 use App\AdminPanel\Pages\{{ panelStudly }}\ProfilePage;
 use App\Http\Controllers\Controller;
+use App\Notifications\AdminNotification;
 use App\Services\FileUploadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -54,6 +55,13 @@ class ProfileController extends Controller
         $user->save();
 
         Notify::success('Profile updated.');
+        AdminNotification::send(
+            $user,
+            'Your profile was updated.',
+            title: 'Profile',
+            type: 'success',
+            url: admin_path('profile'),
+        );
 
         return back();
     }

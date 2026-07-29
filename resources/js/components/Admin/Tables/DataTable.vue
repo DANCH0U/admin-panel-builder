@@ -39,6 +39,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { Icon } from '@iconify/vue';
 import { router } from '@inertiajs/vue3';
 import {
     ArrowDown,
@@ -46,13 +47,11 @@ import {
     ArrowUpDown,
     ChevronDown,
     Columns3,
-    Eye,
     Filter,
     MoreHorizontal,
-    Pencil,
-    Trash2,
 } from 'lucide-vue-next';
-import { computed, onMounted, ref, watch, type Component } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
+import DataTableActionItems from './DataTableActionItems.vue';
 
 type Column = {
     name: string;
@@ -63,12 +62,15 @@ type Column = {
     toggleable?: boolean;
     rounded?: boolean;
     colors?: Record<string, string>;
+    max_length?: number | null;
+    true_label?: string | null;
+    false_label?: string | null;
 };
 
 type TableAction = {
     name: string;
     label: string;
-    icon?: string;
+    icon?: string | null;
     type?: string;
     url?: string | null;
     api?: string | null;
@@ -92,6 +94,21 @@ type BulkAction = {
     confirmButton?: string | null;
 };
 
+type FilterOptions =
+    | Record<string, string>
+    | Array<{ value: string; label: string }>;
+
+type Filter = {
+    name: string;
+    label?: string;
+    type?: string;
+    options?: FilterOptions;
+    min?: number | null;
+    max?: number | null;
+};
+
+type FilterValue = string | string[] | Record<string, string>;
+
 type Dataset = {
     records?: Array<Record<string, any>>;
     current_page?: number;
@@ -107,19 +124,13 @@ type Dataset = {
         }>;
         search?: { placeholder?: string } | null;
         columns?: Column[];
-        filters?: Array<{
-            name: string;
-            label?: string;
-            type?: string;
-            options?:
-                | Record<string, string>
-                | Array<{ value: string; label: string }>;
-        }>;
+        filters?: Filter[];
         bulk_actions?: BulkAction[];
         settings?: {
             record_selection?: boolean;
             selection_column?: string;
             bulk_url?: string | null;
+            query_prefix?: string | null;
         };
     };
 };
@@ -149,7 +160,8 @@ const selectable = computed(() => {
 
 const search = ref('');
 const activeTab = ref(schema.value.tabs?.[0]?.value ?? 'all');
-const filters = ref<Record<string, string>>({});
+/** Filter values: string for select/text, {from,to} / {min,max} for ranges, string[] for multiselect. */
+const filters = ref<Record<string, FilterValue>>({});
 const selected = ref<Array<string | number>>([]);
 const loading = ref(false);
 const sortBy = ref('');
@@ -192,14 +204,58 @@ function keepColumnsMenuOpen(event: Event) {
     event.preventDefault();
 }
 
+/** Mirrors QueryContext::queryKey() so several grids can share one page. */
+function queryKey(name: string) {
+    const prefix = schema.value.settings?.query_prefix;
+    return prefix ? `${prefix}_${name}` : name;
+}
+
 function readQueryState() {
     const params = new URLSearchParams(window.location.search);
-    search.value = params.get('q') || '';
-    sortBy.value = params.get('sort_by') || '';
-    const order = params.get('sort_order');
+    search.value = params.get(queryKey('q')) || '';
+    sortBy.value = params.get(queryKey('sort_by')) || '';
+    const order = params.get(queryKey('sort_order'));
     sortOrder.value = order === 'desc' ? 'desc' : 'asc';
-    const tab = params.get('tab');
+    const tab = params.get(queryKey('tab'));
     if (tab) activeTab.value = tab;
+    filters.value = readFiltersFromQuery(params);
+}
+
+/** Rebuilds filter state from search[key], search[key][from] and search[key][] params. */
+function readFiltersFromQuery(params: URLSearchParams) {
+    const pattern = new RegExp(`^${queryKey('search')}\\[([^\\]]+)\\](?:\\[([^\\]]*)\\])?$`);
+    const next: Record<string, FilterValue> = {};
+
+    params.forEach((value, key) => {
+        const match = key.match(pattern);
+        if (!match) return;
+        const [, name, part] = match;
+
+        if (part === undefined) {
+            next[name] = value;
+        } else if (part === '') {
+            next[name] = [...((next[name] as string[]) ?? []), value];
+        } else {
+            next[name] = { ...((next[name] as Record<string, string>) ?? {}), [part]: value };
+        }
+    });
+
+    return next;
+}
+
+/** Drops blank entries so empty ranges / cleared selects never hit the query string. */
+function pruneFilterValue(value: FilterValue | undefined) {
+    if (Array.isArray(value)) {
+        const items = value.filter((item) => item !== '' && item != null);
+        return items.length ? items : undefined;
+    }
+    if (value && typeof value === 'object') {
+        const entries = Object.entries(value).filter(
+            ([, item]) => item !== '' && item != null,
+        );
+        return entries.length ? Object.fromEntries(entries) : undefined;
+    }
+    return value === '' || value == null ? undefined : value;
 }
 
 onMounted(() => {
@@ -222,9 +278,7 @@ watch(
     },
 );
 
-function filterOptions(
-    options?: Record<string, string> | Array<{ value: string; label: string }>,
-) {
+function filterOptions(options?: FilterOptions) {
     if (!options) return [] as Array<{ value: string; label: string }>;
     if (Array.isArray(options)) return options;
     return Object.entries(options).map(([value, label]) => ({
@@ -233,22 +287,86 @@ function filterOptions(
     }));
 }
 
+/** Single-value filters (select, boolean, text). */
+function filterValue(name: string) {
+    const value = filters.value[name];
+    return typeof value === 'string' ? value : '';
+}
+
+function setFilterValue(name: string, value: string) {
+    filters.value = { ...filters.value, [name]: value };
+}
+
+/** Range filters send search[name][from|to] or search[name][min|max]. */
+function rangeValue(name: string, part: string) {
+    const value = filters.value[name];
+    return value && !Array.isArray(value) && typeof value === 'object'
+        ? (value[part] ?? '')
+        : '';
+}
+
+function setRangeValue(name: string, part: string, value: unknown) {
+    const current = filters.value[name];
+    const base =
+        current && !Array.isArray(current) && typeof current === 'object'
+            ? current
+            : {};
+    filters.value = {
+        ...filters.value,
+        [name]: { ...base, [part]: value == null ? '' : String(value) },
+    };
+}
+
+/** Multiselect filters send search[name][] repeated. */
+function selectedValues(name: string) {
+    const value = filters.value[name];
+    return Array.isArray(value) ? value : [];
+}
+
+function isValueSelected(name: string, option: string) {
+    return selectedValues(name).includes(option);
+}
+
+function toggleValue(name: string, option: string, event: Event) {
+    const checked = (event.target as HTMLInputElement).checked;
+    const current = selectedValues(name);
+    filters.value = {
+        ...filters.value,
+        [name]: checked
+            ? [...current, option]
+            : current.filter((item) => item !== option),
+    };
+}
+
+function isSelectLike(filter: Filter) {
+    if (filter.type === 'multiselect') return false;
+    return filter.type === 'select' || filter.type === 'boolean' || Boolean(filter.options);
+}
+
 function reload(extra: Record<string, any> = {}) {
     loading.value = true;
-    const searchFilters: Record<string, string> = {};
+    const searchFilters: Record<string, any> = {};
     Object.entries(filters.value).forEach(([key, value]) => {
-        if (value) searchFilters[key] = value;
+        const pruned = pruneFilterValue(value);
+        if (pruned !== undefined) searchFilters[key] = pruned;
+    });
+
+    const prefixed: Record<string, any> = {};
+    Object.entries(extra).forEach(([key, value]) => {
+        prefixed[queryKey(key)] = value;
     });
 
     router.get(
         window.location.pathname,
         {
-            q: search.value || undefined,
-            tab: activeTab.value !== 'all' ? activeTab.value : undefined,
-            search: Object.keys(searchFilters).length ? searchFilters : undefined,
-            sort_by: sortBy.value || undefined,
-            sort_order: sortBy.value ? sortOrder.value : undefined,
-            ...extra,
+            [queryKey('q')]: search.value || undefined,
+            [queryKey('tab')]: activeTab.value !== 'all' ? activeTab.value : undefined,
+            [queryKey('search')]: Object.keys(searchFilters).length
+                ? searchFilters
+                : undefined,
+            [queryKey('sort_by')]: sortBy.value || undefined,
+            [queryKey('sort_order')]: sortBy.value ? sortOrder.value : undefined,
+            ...prefixed,
         },
         {
             preserveState: true,
@@ -341,6 +459,32 @@ function cellValue(row: Record<string, any>, column: Column) {
     return column.name.split('.').reduce((acc: any, key: string) => acc?.[key], row);
 }
 
+/** Full cell text, before any display truncation. */
+function cellText(row: Record<string, any>, column: Column) {
+    const value = cellValue(row, column);
+    return value === null || value === undefined ? '' : String(value);
+}
+
+/** Text as shown in the cell — honours the column's maxLength(). */
+function cellDisplay(row: Record<string, any>, column: Column) {
+    const text = cellText(row, column);
+    const max = column.max_length ?? null;
+    if (!max || max <= 0 || text.length <= max) return text;
+    return `${text.slice(0, max).trimEnd()}…`;
+}
+
+/** Tooltip with the untruncated text, only when the cell is clipped. */
+function cellTooltip(row: Record<string, any>, column: Column) {
+    const text = cellText(row, column);
+    return cellDisplay(row, column) === text ? undefined : text;
+}
+
+function booleanLabel(row: Record<string, any>, column: Column) {
+    return cellValue(row, column)
+        ? column.true_label || 'Yes'
+        : column.false_label || 'No';
+}
+
 function badgeVariant(column: Column, value: unknown) {
     const colors = column.colors ?? {};
     const key = Object.entries(colors).find(([, v]) => v === value)?.[0] ?? 'default';
@@ -378,18 +522,11 @@ function tabTriggerClass(tab: { color?: string; badge_color?: string }) {
     return map[tone] ?? map.default;
 }
 
-function actionIcon(action: TableAction): Component | null {
-    const name = (action.name || '').toLowerCase();
-    if (name.includes('view') || name.includes('show')) return Eye;
-    if (name.includes('edit') || name.includes('update')) return Pencil;
-    if (name.includes('delete') || name.includes('destroy') || action.type === 'destructive') {
-        return Trash2;
-    }
-    return null;
-}
-
 const activeFilterCount = computed(
-    () => Object.values(filters.value).filter((v) => v !== '' && v != null).length,
+    () =>
+        Object.values(filters.value).filter(
+            (value) => pruneFilterValue(value) !== undefined,
+        ).length,
 );
 
 function clearFilters() {
@@ -561,7 +698,8 @@ const confirmDestructive = computed(
                             }"
                             @click="runBulkAction(action)"
                         >
-                            {{ action.label }}
+                            <Icon v-if="action.icon" :icon="action.icon" class="size-4 opacity-70" />
+                            <span>{{ action.label }}</span>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator v-if="selected.length" />
                         <DropdownMenuItem
@@ -611,13 +749,15 @@ const confirmDestructive = computed(
                                 {{ filter.label || filter.name }}
                             </p>
                             <Select
-                                v-if="filter.type === 'select' || filter.options"
-                                :model-value="filters[filter.name] || '__all'"
+                                v-if="isSelectLike(filter)"
+                                :model-value="filterValue(filter.name) || '__all'"
                                 @update:model-value="
                                     (v) => {
                                         const value = String(v ?? '');
-                                        filters[filter.name] =
-                                            value === '__all' ? '' : value;
+                                        setFilterValue(
+                                            filter.name,
+                                            value === '__all' ? '' : value,
+                                        );
                                     }
                                 "
                             >
@@ -635,6 +775,80 @@ const confirmDestructive = computed(
                                     </SelectItem>
                                 </SelectContent>
                             </Select>
+
+                            <div
+                                v-else-if="filter.type === 'multiselect'"
+                                class="max-h-40 space-y-1.5 overflow-y-auto pe-1"
+                            >
+                                <label
+                                    v-for="opt in filterOptions(filter.options)"
+                                    :key="opt.value"
+                                    class="flex cursor-pointer items-center gap-2 text-sm"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        class="size-4 cursor-pointer rounded-[4px] border border-input accent-primary"
+                                        :checked="isValueSelected(filter.name, opt.value)"
+                                        @change="toggleValue(filter.name, opt.value, $event)"
+                                    />
+                                    <span>{{ opt.label }}</span>
+                                </label>
+                            </div>
+
+                            <div
+                                v-else-if="filter.type === 'date_range'"
+                                class="grid grid-cols-2 gap-2"
+                            >
+                                <Input
+                                    type="date"
+                                    :model-value="rangeValue(filter.name, 'from')"
+                                    @update:model-value="
+                                        (v) => setRangeValue(filter.name, 'from', v)
+                                    "
+                                />
+                                <Input
+                                    type="date"
+                                    :model-value="rangeValue(filter.name, 'to')"
+                                    @update:model-value="
+                                        (v) => setRangeValue(filter.name, 'to', v)
+                                    "
+                                />
+                            </div>
+
+                            <div
+                                v-else-if="filter.type === 'numeric_range'"
+                                class="grid grid-cols-2 gap-2"
+                            >
+                                <Input
+                                    type="number"
+                                    placeholder="Min"
+                                    :min="filter.min ?? undefined"
+                                    :max="filter.max ?? undefined"
+                                    :model-value="rangeValue(filter.name, 'min')"
+                                    @update:model-value="
+                                        (v) => setRangeValue(filter.name, 'min', v)
+                                    "
+                                />
+                                <Input
+                                    type="number"
+                                    placeholder="Max"
+                                    :min="filter.min ?? undefined"
+                                    :max="filter.max ?? undefined"
+                                    :model-value="rangeValue(filter.name, 'max')"
+                                    @update:model-value="
+                                        (v) => setRangeValue(filter.name, 'max', v)
+                                    "
+                                />
+                            </div>
+
+                            <Input
+                                v-else
+                                :placeholder="filter.label || filter.name"
+                                :model-value="filterValue(filter.name)"
+                                @update:model-value="
+                                    (v) => setFilterValue(filter.name, String(v ?? ''))
+                                "
+                            />
                         </div>
 
                         <div class="flex justify-between gap-2">
@@ -746,14 +960,15 @@ const confirmDestructive = computed(
                             <Badge
                                 v-if="column.type === 'badge'"
                                 :variant="badgeVariant(column, cellValue(row, column)) as any"
+                                :title="cellTooltip(row, column)"
                             >
-                                {{ cellValue(row, column) }}
+                                {{ cellDisplay(row, column) }}
                             </Badge>
                             <span
                                 v-else-if="column.type === 'boolean'"
                                 class="text-muted-foreground"
                             >
-                                {{ cellValue(row, column) ? 'Yes' : 'No' }}
+                                {{ booleanLabel(row, column) }}
                             </span>
                             <img
                                 v-else-if="column.type === 'image' && cellValue(row, column)"
@@ -769,10 +984,13 @@ const confirmDestructive = computed(
                             <span
                                 v-else-if="column.type === 'json'"
                                 class="font-mono text-xs text-muted-foreground"
+                                :title="cellTooltip(row, column)"
                             >
-                                {{ cellValue(row, column) ?? '—' }}
+                                {{ cellDisplay(row, column) || '—' }}
                             </span>
-                            <span v-else>{{ cellValue(row, column) }}</span>
+                            <span v-else :title="cellTooltip(row, column)">
+                                {{ cellDisplay(row, column) }}
+                            </span>
                         </TableCell>
                         <TableCell class="w-12">
                             <DropdownMenu v-if="row.table_actions?.length">
@@ -790,34 +1008,10 @@ const confirmDestructive = computed(
                                     :side-offset="6"
                                     class="w-44 rounded-xl border bg-popover p-1.5 shadow-lg"
                                 >
-                                    <template
-                                        v-for="(action, actionIndex) in row.table_actions"
-                                        :key="action.name || actionIndex"
-                                    >
-                                        <DropdownMenuSeparator
-                                            v-if="
-                                                actionIndex > 0 &&
-                                                action.type === 'destructive'
-                                            "
-                                            class="my-1"
-                                        />
-                                        <DropdownMenuItem
-                                            :disabled="action.disabled"
-                                            class="cursor-pointer gap-2 rounded-lg px-2.5 py-2"
-                                            :class="{
-                                                'text-destructive focus:bg-destructive/10 focus:text-destructive':
-                                                    action.type === 'destructive',
-                                            }"
-                                            @click="runAction(action)"
-                                        >
-                                            <component
-                                                :is="actionIcon(action)"
-                                                v-if="actionIcon(action)"
-                                                class="size-4 opacity-70"
-                                            />
-                                            <span>{{ action.label }}</span>
-                                        </DropdownMenuItem>
-                                    </template>
+                                    <DataTableActionItems
+                                        :actions="row.table_actions"
+                                        @select="runAction"
+                                    />
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         </TableCell>
